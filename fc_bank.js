@@ -25,7 +25,7 @@ function autoBrokerAction() {
     var delay = delayAmount(); //GC or harvest bank
     var recommendation = nextPurchase();
     if (
-        recommendation.type == "building" && // Don't hire when saving for upgrade
+        recommendation.type === "building" && // Don't hire when saving for upgrade
         B.brokers < B.getMaxBrokers() &&
         Game.cookies >= delay + B.getBrokerPrice()
     ) {
@@ -42,6 +42,6 @@ function autoLoanBuy() {
     if (hasClickBuff() && !Game.hasBuff("Cursed finger") && cpsBonus() >= FrozenCookies.minLoanMult) {
         if (B.officeLevel >= 2) B.takeLoan(1);
         if (B.officeLevel >= 4) B.takeLoan(2);
-        if (B.officeLevel >= 5 && FrozenCookies.autoLoan == 2) B.takeLoan(3);
+        if (B.officeLevel >= 5 && FrozenCookies.autoLoan === 2) B.takeLoan(3);
     }
 }

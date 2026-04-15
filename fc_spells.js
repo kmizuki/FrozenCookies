@@ -39,7 +39,7 @@
 nextSpell = function (i) {
     if (Game.ObjectsById[7].minigameLoaded) {
         season = Game.season;
-        var obj = obj || {};
+        var obj = {};
         M = Game.ObjectsById[7].minigame;
         spell = M.spellsById[1];
         var failChance = M.getFailChance(spell);
@@ -52,7 +52,7 @@ nextSpell = function (i) {
         if (!spell.fail || Math.random() < 1 - failChance) {
             Math.random();
             Math.random();
-            if (Game.season == "valentines" || Game.season == "easter") {
+            if (Game.season === "valentines" || Game.season === "easter") {
                 Math.random();
             }
             choices.push('<b style="color:#FFDE5F">Frenzy', '<b style="color:#FFDE5F">Lucky');
@@ -66,7 +66,7 @@ nextSpell = function (i) {
         } else {
             Math.random();
             Math.random();
-            if (Game.season == "valentines" || Game.season == "easter") {
+            if (Game.season === "valentines" || Game.season === "easter") {
                 Math.random();
             }
             choices.push('<b style="color:#FF3605">Clot', '<b style="color:#FF3605">Ruin Cookies');
@@ -85,55 +85,55 @@ nextSpell = function (i) {
 nextSpellName = function (i) {
     if (Game.ObjectsById[7].minigameLoaded) {
         for (var v = i; v <= i; v++) {
-            if (nextSpell(v) == '<small><b style="color:#FFDE5F">Lucky</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#FFDE5F">Lucky</b></small>') {
                 return "Lucky";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#FFDE5F">Frenzy</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#FFDE5F">Frenzy</b></small>') {
                 return "Frenzy";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#00C4FF">Click Frenzy</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#00C4FF">Click Frenzy</b></small>') {
                 return "Click Frenzy";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#FFDE5F">Cookie Chain</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#FFDE5F">Cookie Chain</b></small>') {
                 return "Cookie Chain";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#00C4FF">Cookie Storm</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#00C4FF">Cookie Storm</b></small>') {
                 return "Cookie Storm";
             }
 
-            if (nextSpell(v) == "<small>Cookie Storm (Drop)</b></small>") {
+            if (nextSpell(v) === "<small>Cookie Storm (Drop)</b></small>") {
                 return "Cookie Storm (Drop)";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#DAA520">Building Special</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#DAA520">Building Special</b></small>') {
                 return "Building Special";
             }
 
-            if (nextSpell(v) == "<small>Blab</b></small>") {
+            if (nextSpell(v) === "<small>Blab</b></small>") {
                 return "Blab";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#FF3605">Ruin Cookies</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#FF3605">Ruin Cookies</b></small>') {
                 return "Ruin Cookies";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#FF3605">Clot</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#FF3605">Clot</b></small>') {
                 return "Clot";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#174F01">Cursed Finger</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#174F01">Cursed Finger</b></small>') {
                 return "Cursed Finger";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#4F0007">Elder Frenzy</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#4F0007">Elder Frenzy</b></small>') {
                 return "Elder Frenzy";
             }
 
-            if (nextSpell(v) == '<small><b style="color:#5FFFFC">Sugar Lump</b></small>') {
+            if (nextSpell(v) === '<small><b style="color:#5FFFFC">Sugar Lump</b></small>') {
                 return "Sugar Lump";
             }
         }
@@ -194,7 +194,7 @@ BuildingSpecialBuff = function () {
 // This function will be used to check time left on building buff within autoCast() function
 function BuildingBuffTime() {
     for (var i in Game.buffs) {
-        if (Game.buffs[i].type && Game.buffs[i].type.name == "building buff") {
+        if (Game.buffs[i].type && Game.buffs[i].type.name === "building buff") {
             return Game.buffs[i].time / 30;
         }
     }
@@ -214,9 +214,9 @@ function BuffTimeFactor() {
 
     if (Game.hasGod) {
         var godLvl = Game.hasGod("decadence");
-        if (godLvl == 1) DurMod *= 1.07;
-        else if (godLvl == 2) DurMod *= 1.05;
-        else if (godLvl == 3) DurMod *= 1.02;
+        if (godLvl === 1) DurMod *= 1.07;
+        else if (godLvl === 2) DurMod *= 1.05;
+        else if (godLvl === 3) DurMod *= 1.02;
     }
 
     return DurMod;
@@ -224,12 +224,12 @@ function BuffTimeFactor() {
 
 function autoCast() {
     if (!M) return;
-    if (FrozenCookies.autoCasting == 0) return;
+    if (FrozenCookies.autoCasting === 0) return;
 
     if (
-        FrozenCookies.autoFTHOFCombo == 1 ||
-        FrozenCookies.auto100ConsistencyCombo == 1 ||
-        FrozenCookies.autoSweet == 1
+        FrozenCookies.autoFTHOFCombo === 1 ||
+        FrozenCookies.auto100ConsistencyCombo === 1 ||
+        FrozenCookies.autoSweet === 1
     ) {
         FrozenCookies.autoCasting = 0;
     }
@@ -238,7 +238,7 @@ function autoCast() {
         // Free lump!
         if (
             M.magicM >= Math.floor(M.spellsById[1].costMin + M.spellsById[1].costPercent * M.magicM) &&
-            nextSpellName(0) == "Sugar Lump"
+            nextSpellName(0) === "Sugar Lump"
         ) {
             M.castSpell(M.spellsById[1]);
             logEvent("autoCasting", "Cast Force the Hand of Fate for a free lump");
@@ -253,7 +253,7 @@ function autoCast() {
                     Game.hasBuff("Loan 2 (interest)") ||
                     Game.hasBuff("Loan 3 (interest)"))) ||
                 cpsBonus() < 1) &&
-            (nextSpellName(0) == "Clot" || nextSpellName(0) == "Ruin Cookies")
+            (nextSpellName(0) === "Clot" || nextSpellName(0) === "Ruin Cookies")
         ) {
             M.castSpell(M.spellsById[2]);
             logEvent("autoCasting", "Cast Stretch Time to shorten debuff");
@@ -264,7 +264,7 @@ function autoCast() {
         if (
             M.magicM >= Math.floor(M.spellsById[4].costMin + M.spellsById[4].costPercent * M.magicM) &&
             cpsBonus() >= FrozenCookies.minCpSMult &&
-            (nextSpellName(0) == "Clot" || nextSpellName(0) == "Ruin Cookies")
+            (nextSpellName(0) === "Clot" || nextSpellName(0) === "Ruin Cookies")
         ) {
             M.castSpell(M.spellsById[4]);
             logEvent("autoCasting", "Cast Haggler's Charm to avoid backfire");
@@ -298,7 +298,7 @@ function autoCast() {
 
                 if (
                     !Game.hasBuff("Dragonflight") &&
-                    (nextSpellName(0) == "Blab" || nextSpellName(0) == "Cookie Storm (Drop)")
+                    (nextSpellName(0) === "Blab" || nextSpellName(0) === "Cookie Storm (Drop)")
                 ) {
                     M.castSpell(M.spellsById[4]);
                     logEvent("autoCasting", "Cast Haggler's Charm instead of Force the Hand of Fate");
@@ -306,16 +306,16 @@ function autoCast() {
                 }
 
                 if (cpsBonus() >= FrozenCookies.minCpSMult) {
-                    if (!Game.hasBuff("Dragonflight") && nextSpellName(0) == "Lucky") {
+                    if (!Game.hasBuff("Dragonflight") && nextSpellName(0) === "Lucky") {
                         M.castSpell(M.spellsById[1]);
                         logEvent("autoCasting", "Cast Force the Hand of Fate");
                     }
 
                     if (
-                        nextSpellName(0) == "Cookie Chain" ||
-                        nextSpellName(0) == "Cookie Storm" ||
-                        nextSpellName(0) == "Frenzy" ||
-                        nextSpellName(0) == "Building Special"
+                        nextSpellName(0) === "Cookie Chain" ||
+                        nextSpellName(0) === "Cookie Storm" ||
+                        nextSpellName(0) === "Frenzy" ||
+                        nextSpellName(0) === "Building Special"
                     ) {
                         M.castSpell(M.spellsById[1]);
                         logEvent("autoCasting", "Cast Force the Hand of Fate");
@@ -323,7 +323,7 @@ function autoCast() {
                     }
 
                     if (
-                        nextSpellName(0) == "Click Frenzy" &&
+                        nextSpellName(0) === "Click Frenzy" &&
                         (((Game.hasAura("Reaper of Fields") || Game.hasAura("Reality Bending")) &&
                             Game.hasBuff("Dragon Harvest") &&
                             Game.hasBuff("Frenzy") &&
@@ -333,7 +333,7 @@ function autoCast() {
                                 (Game.hasBuff("Dragon Harvest") || Game.hasBuff("Frenzy")) &&
                                 (Game.hasBuff("Dragon Harvest").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1 ||
                                     Game.hasBuff("Frenzy").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1))) &&
-                        BuildingSpecialBuff() == 1 &&
+                        BuildingSpecialBuff() === 1 &&
                         BuildingBuffTime() >= Math.ceil(13 * BuffTimeFactor())
                     ) {
                         M.castSpell(M.spellsById[1]);
@@ -341,8 +341,8 @@ function autoCast() {
                         return;
                     }
 
-                    if (nextSpellName(0) == "Elder Frenzy") {
-                        if (Game.Upgrades["Elder Pact"].bought == 1) {
+                    if (nextSpellName(0) === "Elder Frenzy") {
+                        if (Game.Upgrades["Elder Pact"].bought === 1) {
                             if (
                                 (Game.hasBuff("Click frenzy") || Game.hasBuff("Dragonflight")) &&
                                 (Game.hasBuff("Click frenzy").time / 30 >= Math.ceil(6 * BuffTimeFactor()) - 1 ||
@@ -351,7 +351,7 @@ function autoCast() {
                                 M.castSpell(M.spellsById[1]);
                                 logEvent("autoCasting", "Cast Force the Hand of Fate");
                             }
-                        } else if (Game.Upgrades["Elder Pact"].bought == 0) {
+                        } else if (Game.Upgrades["Elder Pact"].bought === 0) {
                             if (
                                 (((Game.hasAura("Reaper of Fields") || Game.hasAura("Reality Bending")) &&
                                     Game.hasBuff("Dragon Harvest") &&
@@ -376,7 +376,7 @@ function autoCast() {
                     }
 
                     if (
-                        nextSpellName(0) == "Cursed Finger" &&
+                        nextSpellName(0) === "Cursed Finger" &&
                         (Game.hasBuff("Click frenzy") || Game.hasBuff("Dragonflight")) &&
                         (Game.hasBuff("Click frenzy").time / 30 >= Math.ceil(10 * BuffTimeFactor()) - 1 ||
                             Game.hasBuff("Dragonflight").time / 30 >= Math.ceil(6 * BuffTimeFactor()) - 1)
@@ -395,26 +395,26 @@ function autoCast() {
 
                 if (
                     !Game.hasBuff("Dragonflight") &&
-                    (nextSpellName(0) == "Blab" ||
-                        nextSpellName(0) == "Cookie Storm (Drop)" ||
-                        nextSpellName(0) == "Cookie Chain" ||
-                        nextSpellName(0) == "Cookie Storm" ||
-                        nextSpellName(0) == "Frenzy" ||
-                        nextSpellName(0) == "Lucky")
+                    (nextSpellName(0) === "Blab" ||
+                        nextSpellName(0) === "Cookie Storm (Drop)" ||
+                        nextSpellName(0) === "Cookie Chain" ||
+                        nextSpellName(0) === "Cookie Storm" ||
+                        nextSpellName(0) === "Frenzy" ||
+                        nextSpellName(0) === "Lucky")
                 ) {
                     M.castSpell(M.spellsById[4]);
                     logEvent("autoCasting", "Cast Haggler's Charm instead of Force the Hand of Fate");
                 }
 
                 if (cpsBonus() >= FrozenCookies.minCpSMult) {
-                    if (nextSpellName(0) == "Building Special") {
+                    if (nextSpellName(0) === "Building Special") {
                         M.castSpell(M.spellsById[1]);
                         logEvent("autoCasting", "Cast Force the Hand of Fate");
                         return;
                     }
 
                     if (
-                        nextSpellName(0) == "Click Frenzy" &&
+                        nextSpellName(0) === "Click Frenzy" &&
                         (((Game.hasAura("Reaper of Fields") || Game.hasAura("Reality Bending")) &&
                             Game.hasBuff("Dragon Harvest") &&
                             Game.hasBuff("Frenzy") &&
@@ -424,7 +424,7 @@ function autoCast() {
                                 (Game.hasBuff("Dragon Harvest") || Game.hasBuff("Frenzy")) &&
                                 (Game.hasBuff("Dragon Harvest").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1 ||
                                     Game.hasBuff("Frenzy").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1))) &&
-                        BuildingSpecialBuff() == 1 &&
+                        BuildingSpecialBuff() === 1 &&
                         BuildingBuffTime() >= Math.ceil(13 * BuffTimeFactor())
                     ) {
                         M.castSpell(M.spellsById[1]);
@@ -432,8 +432,8 @@ function autoCast() {
                         return;
                     }
 
-                    if (nextSpellName(0) == "Elder Frenzy") {
-                        if (Game.Upgrades["Elder Pact"].bought == 1) {
+                    if (nextSpellName(0) === "Elder Frenzy") {
+                        if (Game.Upgrades["Elder Pact"].bought === 1) {
                             if (
                                 (Game.hasBuff("Click frenzy") || Game.hasBuff("Dragonflight")) &&
                                 (Game.hasBuff("Click frenzy").time / 30 >= Math.ceil(6 * BuffTimeFactor()) - 1 ||
@@ -442,7 +442,7 @@ function autoCast() {
                                 M.castSpell(M.spellsById[1]);
                                 logEvent("autoCasting", "Cast Force the Hand of Fate");
                             }
-                        } else if (Game.Upgrades["Elder Pact"].bought == 0) {
+                        } else if (Game.Upgrades["Elder Pact"].bought === 0) {
                             if (
                                 (((Game.hasAura("Reaper of Fields") || Game.hasAura("Reality Bending")) &&
                                     Game.hasBuff("Dragon Harvest") &&
@@ -467,7 +467,7 @@ function autoCast() {
                     }
 
                     if (
-                        nextSpellName(0) == "Cursed Finger" &&
+                        nextSpellName(0) === "Cursed Finger" &&
                         (Game.hasBuff("Click frenzy") || Game.hasBuff("Dragonflight")) &&
                         (Game.hasBuff("Click frenzy").time / 30 >= Math.ceil(10 * BuffTimeFactor()) - 1 ||
                             Game.hasBuff("Dragonflight").time / 30 >= Math.ceil(6 * BuffTimeFactor()) - 1)
@@ -482,7 +482,7 @@ function autoCast() {
             case 5:
                 // If you don't have any You yet, or can't cast SE, just give up.
                 if (
-                    Game.Objects["You"].amount == 0 ||
+                    Game.Objects["You"].amount === 0 ||
                     M.magicM < Math.floor(M.spellsById[3].costMin + M.spellsById[3].costPercent * M.magicM)
                 ) {
                     return;
@@ -517,7 +517,7 @@ function autoCast() {
 // Thank goodness for static variables otherwise this function would not have worked as intended.
 function autoFTHOFComboAction() {
     if (!M) return;
-    if (FrozenCookies.autoFTHOFCombo == 0) return;
+    if (FrozenCookies.autoFTHOFCombo === 0) return;
 
     // Prereqs check
     if (Game.Objects["Wizard tower"].level > 10) {
@@ -529,14 +529,14 @@ function autoFTHOFComboAction() {
 
     // Not currently possible to do the combo
     if (
-        FrozenCookies.auto100ConsistencyCombo == 1 || // 100% combo should override
-        FrozenCookies.autoSweet == 1 // Autosweet overrides
+        FrozenCookies.auto100ConsistencyCombo === 1 || // 100% combo should override
+        FrozenCookies.autoSweet === 1 // Autosweet overrides
     ) {
         FrozenCookies.autoFTHOFCombo = 0;
     }
 
-    if (typeof autoFTHOFComboAction.state == "undefined") autoFTHOFComboAction.state = 0;
-    if (typeof autoFTHOFComboAction.count == "undefined") autoFTHOFComboAction.count = 0;
+    if (typeof autoFTHOFComboAction.state === "undefined") autoFTHOFComboAction.state = 0;
+    if (typeof autoFTHOFComboAction.count === "undefined") autoFTHOFComboAction.count = 0;
 
     if (
         autoFTHOFComboAction.state > 3 ||
@@ -545,10 +545,10 @@ function autoFTHOFComboAction() {
             ((FrozenCookies.towerLimit && M.magic >= M.magicM) ||
                 (!FrozenCookies.towerLimit && M.magic >= M.magicM - 1)) &&
             !Game.hasBuff("Click frenzy") &&
-            !nextSpellName(0) == "Click Frenzy" &&
-            !nextSpellName(1) == "Click Frenzy")
+            nextSpellName(0) !== "Click Frenzy" &&
+            nextSpellName(1) !== "Click Frenzy")
     ) {
-        if (autoFTHOFComboAction.autobuyyes == 1) {
+        if (autoFTHOFComboAction.autobuyyes === 1) {
             FrozenCookies.autoBuy = 1;
             autoFTHOFComboAction.autobuyyes = 0;
         }
@@ -558,17 +558,17 @@ function autoFTHOFComboAction() {
 
     if (
         !autoFTHOFComboAction.state &&
-        ((nextSpellName(0) == "Click Frenzy" && nextSpellName(1) == "Building Special") ||
-            (nextSpellName(1) == "Click Frenzy" && nextSpellName(0) == "Building Special") ||
-            (nextSpellName(0) == "Click Frenzy" && nextSpellName(1) == "Elder Frenzy") ||
-            (nextSpellName(1) == "Click Frenzy" && nextSpellName(0) == "Elder Frenzy"))
+        ((nextSpellName(0) === "Click Frenzy" && nextSpellName(1) === "Building Special") ||
+            (nextSpellName(1) === "Click Frenzy" && nextSpellName(0) === "Building Special") ||
+            (nextSpellName(0) === "Click Frenzy" && nextSpellName(1) === "Elder Frenzy") ||
+            (nextSpellName(1) === "Click Frenzy" && nextSpellName(0) === "Elder Frenzy"))
     ) {
         autoFTHOFComboAction.state = 1;
     }
     if (
         !autoFTHOFComboAction.state &&
-        nextSpellName(0) == "Building Special" &&
-        nextSpellName(1) == "Building Special"
+        nextSpellName(0) === "Building Special" &&
+        nextSpellName(1) === "Building Special"
     ) {
         autoFTHOFComboAction.state = 2;
     }
@@ -578,10 +578,10 @@ function autoFTHOFComboAction() {
         ((FrozenCookies.towerLimit && M.magic >= M.magicM) || (!FrozenCookies.towerLimit && M.magic >= M.magicM - 1))
     ) {
         //Continue casting Haggler's Charm - unless it's something we need right now
-        if (nextSpellName(0) == "Sugar Lump") {
+        if (nextSpellName(0) === "Sugar Lump") {
             M.castSpell(M.spellsById[1]);
             logEvent("autoFTHOFCombo", "Cast Force the Hand of Fate");
-        } else if (cpsBonus() < 1 && (nextSpellName(0) == "Clot" || nextSpellName(0) == "Ruin Cookies")) {
+        } else if (cpsBonus() < 1 && (nextSpellName(0) === "Clot" || nextSpellName(0) === "Ruin Cookies")) {
             M.castSpell(M.spellsById[2]);
             logEvent("autoFTHOFCombo", "Cast Stretch Time instead of FTHOF");
         } else {
@@ -596,7 +596,7 @@ function autoFTHOFComboAction() {
         case 0:
             return;
         case 1:
-            if (!nextSpellName(0) == "Click Frenzy" && !nextSpellName(1) == "Click Frenzy") {
+            if (nextSpellName(0) !== "Click Frenzy" && nextSpellName(1) !== "Click Frenzy") {
                 autoFTHOFComboAction.state = 0;
                 return;
             }
@@ -613,7 +613,7 @@ function autoFTHOFComboAction() {
                         (Game.hasBuff("Dragon Harvest") || Game.hasBuff("Frenzy")) &&
                         (Game.hasBuff("Dragon Harvest").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1 ||
                             Game.hasBuff("Frenzy").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1))) &&
-                BuildingSpecialBuff() == 1 &&
+                BuildingSpecialBuff() === 1 &&
                 BuildingBuffTime() >= Math.ceil(13 * BuffTimeFactor())
             ) {
                 switch (SugarLevel) {
@@ -704,7 +704,7 @@ function autoFTHOFComboAction() {
             }
             return;
         case 2:
-            if (!nextSpellName(0) == "Building Special" && !nextSpellName(1) == "Building Special") {
+            if (nextSpellName(0) !== "Building Special" && nextSpellName(1) !== "Building Special") {
                 autoFTHOFComboAction.state = 0;
                 return;
             }
@@ -814,27 +814,27 @@ function autoFTHOFComboAction() {
             return;
         case 3:
             // Turn off autoBuy and make sure we're not in sell mode
-            if (FrozenCookies.autoBuy == 1) {
+            if (FrozenCookies.autoBuy === 1) {
                 autoFTHOFComboAction.autobuyyes = 1;
                 FrozenCookies.autoBuy = 0;
             } else {
                 autoFTHOFComboAction.autobuyyes = 0;
             }
-            if (Game.buyMode == -1) Game.buyMode = 1;
+            if (Game.buyMode === -1) Game.buyMode = 1;
             Game.Objects["Wizard tower"].sell(autoFTHOFComboAction.count);
             M.computeMagicM(); //Recalc max after selling
             M.castSpell(M.spellsById[1]);
             logEvent("autoFTHOFCombo", "Double cast Force the Hand of Fate");
             if (FrozenCookies.towerLimit && FrozenCookies.manaMax <= 100 && autoFTHOFComboAction.count <= 497) {
                 safeBuy(Game.Objects["Wizard tower"], autoFTHOFComboAction.count);
-            } else if (FrozenCookies.towerLimit && FrozenCookies.manaMax <= 100 && SugarLevel == 10) {
+            } else if (FrozenCookies.towerLimit && FrozenCookies.manaMax <= 100 && SugarLevel === 10) {
                 safeBuy(Game.Objects["Wizard tower"], 486);
             } else {
                 safeBuy(Game.Objects["Wizard tower"], autoFTHOFComboAction.count);
             }
             FrozenCookies.autobuyCount += 1;
             // Turn autoBuy back on if it was on before
-            if (autoFTHOFComboAction.autobuyyes == 1) {
+            if (autoFTHOFComboAction.autobuyyes === 1) {
                 FrozenCookies.autoBuy = 1;
                 autoFTHOFComboAction.autobuyyes = 0;
             }
@@ -848,11 +848,11 @@ function autoFTHOFComboAction() {
 function auto100ConsistencyComboAction() {
     if (!M) return;
     if (!G) return;
-    if (FrozenCookies.auto100ConsistencyCombo == 0) return;
+    if (FrozenCookies.auto100ConsistencyCombo === 0) return;
 
     // Prereqs check
     if (
-        Game.Objects["Wizard tower"].level != 10 // Only works with wizard towers level 10
+        Game.Objects["Wizard tower"].level !== 10 // Only works with wizard towers level 10
     ) {
         FrozenCookies.auto100ConsistencyCombo = 0;
         logEvent("auto100ConsistencyCombo", "Combo disabled, impossible");
@@ -860,7 +860,7 @@ function auto100ConsistencyComboAction() {
     }
 
     // Autosweet overrides
-    if (FrozenCookies.autoSweet == 1) FrozenCookies.auto100ConsistencyCombo = 0;
+    if (FrozenCookies.autoSweet === 1) FrozenCookies.auto100ConsistencyCombo = 0;
 
     // Not currently possible to do the combo
     if (
@@ -869,56 +869,56 @@ function auto100ConsistencyComboAction() {
         return;
     }
 
-    if (typeof auto100ConsistencyComboAction.state == "undefined") auto100ConsistencyComboAction.state = 0;
-    if (typeof auto100ConsistencyComboAction.countFarm == "undefined") auto100ConsistencyComboAction.countFarm = 0;
-    if (typeof auto100ConsistencyComboAction.countMine == "undefined") auto100ConsistencyComboAction.countMine = 0;
-    if (typeof auto100ConsistencyComboAction.countFactory == "undefined")
+    if (typeof auto100ConsistencyComboAction.state === "undefined") auto100ConsistencyComboAction.state = 0;
+    if (typeof auto100ConsistencyComboAction.countFarm === "undefined") auto100ConsistencyComboAction.countFarm = 0;
+    if (typeof auto100ConsistencyComboAction.countMine === "undefined") auto100ConsistencyComboAction.countMine = 0;
+    if (typeof auto100ConsistencyComboAction.countFactory === "undefined")
         auto100ConsistencyComboAction.countFactory = 0;
-    if (typeof auto100ConsistencyComboAction.countBank == "undefined") auto100ConsistencyComboAction.countBank = 0;
-    if (typeof auto100ConsistencyComboAction.countTemple == "undefined") auto100ConsistencyComboAction.countTemple = 0;
-    if (typeof auto100ConsistencyComboAction.countWizard == "undefined") auto100ConsistencyComboAction.countWizard = 0;
-    if (typeof auto100ConsistencyComboAction.countShipment == "undefined")
+    if (typeof auto100ConsistencyComboAction.countBank === "undefined") auto100ConsistencyComboAction.countBank = 0;
+    if (typeof auto100ConsistencyComboAction.countTemple === "undefined") auto100ConsistencyComboAction.countTemple = 0;
+    if (typeof auto100ConsistencyComboAction.countWizard === "undefined") auto100ConsistencyComboAction.countWizard = 0;
+    if (typeof auto100ConsistencyComboAction.countShipment === "undefined")
         auto100ConsistencyComboAction.countShipment = 0;
-    if (typeof auto100ConsistencyComboAction.countAlchemy == "undefined")
+    if (typeof auto100ConsistencyComboAction.countAlchemy === "undefined")
         auto100ConsistencyComboAction.countAlchemy = 0;
-    if (typeof auto100ConsistencyComboAction.countTimeMach == "undefined")
+    if (typeof auto100ConsistencyComboAction.countTimeMach === "undefined")
         auto100ConsistencyComboAction.countTimeMach = 0;
 
     if (
         auto100ConsistencyComboAction.state > 20 ||
         // Either at stage 0 or 1 with flags set or in progress, but broken
         (((auto100ConsistencyComboAction.state < 2 &&
-            (auto100ConsistencyComboAction.autobuyyes == 1 ||
-                auto100ConsistencyComboAction.autogcyes == 1 ||
-                auto100ConsistencyComboAction.autogsyes == 1 ||
-                auto100ConsistencyComboAction.autogodyes == 1 ||
-                auto100ConsistencyComboAction.autodragonyes == 1 ||
-                auto100ConsistencyComboAction.autoworshipyes == 1)) ||
+            (auto100ConsistencyComboAction.autobuyyes === 1 ||
+                auto100ConsistencyComboAction.autogcyes === 1 ||
+                auto100ConsistencyComboAction.autogsyes === 1 ||
+                auto100ConsistencyComboAction.autogodyes === 1 ||
+                auto100ConsistencyComboAction.autodragonyes === 1 ||
+                auto100ConsistencyComboAction.autoworshipyes === 1)) ||
             (auto100ConsistencyComboAction.state > 1 && !BuildingSpecialBuff() && !hasClickBuff())) &&
             ((FrozenCookies.towerLimit && M.magic >= M.magicM) ||
                 (!FrozenCookies.towerLimit && M.magic >= M.magicM - 1)))
     ) {
-        if (auto100ConsistencyComboAction.autobuyyes == 1) {
+        if (auto100ConsistencyComboAction.autobuyyes === 1) {
             FrozenCookies.autoBuy = 1;
             auto100ConsistencyComboAction.autobuyyes = 0;
         }
-        if (auto100ConsistencyComboAction.autogcyes == 1) {
+        if (auto100ConsistencyComboAction.autogcyes === 1) {
             FrozenCookies.autoGC = 1;
             auto100ConsistencyComboAction.autogcyes = 0;
         }
-        if (auto100ConsistencyComboAction.autogsyes == 1) {
+        if (auto100ConsistencyComboAction.autogsyes === 1) {
             FrozenCookies.autoGS = 1;
             auto100ConsistencyComboAction.autogsyes = 0;
         }
-        if (auto100ConsistencyComboAction.autogodyes == 1) {
+        if (auto100ConsistencyComboAction.autogodyes === 1) {
             FrozenCookies.autoGodzamok = 1;
             auto100ConsistencyComboAction.autogodyes = 0;
         }
-        if (auto100ConsistencyComboAction.autodragonyes == 1) {
+        if (auto100ConsistencyComboAction.autodragonyes === 1) {
             FrozenCookies.autoDragonToggle = 1;
             auto100ConsistencyComboAction.autodragonyes = 0;
         }
-        if (auto100ConsistencyComboAction.autoworshipyes == 1) {
+        if (auto100ConsistencyComboAction.autoworshipyes === 1) {
             FrozenCookies.autoWorshipToggle = 1;
             auto100ConsistencyComboAction.autoworshipyes = 0;
         }
@@ -929,10 +929,10 @@ function auto100ConsistencyComboAction() {
     if (
         !auto100ConsistencyComboAction.state &&
         M.magicM >= 98 &&
-        ((nextSpellName(0) == "Click Frenzy" && nextSpellName(1) == "Building Special") ||
-            (nextSpellName(1) == "Click Frenzy" && nextSpellName(0) == "Building Special") ||
-            (nextSpellName(0) == "Click Frenzy" && nextSpellName(1) == "Elder Frenzy") ||
-            (nextSpellName(1) == "Click Frenzy" && nextSpellName(0) == "Elder Frenzy"))
+        ((nextSpellName(0) === "Click Frenzy" && nextSpellName(1) === "Building Special") ||
+            (nextSpellName(1) === "Click Frenzy" && nextSpellName(0) === "Building Special") ||
+            (nextSpellName(0) === "Click Frenzy" && nextSpellName(1) === "Elder Frenzy") ||
+            (nextSpellName(1) === "Click Frenzy" && nextSpellName(0) === "Elder Frenzy"))
     ) {
         auto100ConsistencyComboAction.state = 1;
     }
@@ -952,10 +952,10 @@ function auto100ConsistencyComboAction() {
         !auto100ConsistencyComboAction.state &&
         ((FrozenCookies.towerLimit && M.magic >= M.magicM) || (!FrozenCookies.towerLimit && M.magic >= M.magicM - 1))
     ) {
-        if (nextSpellName(0) == "Sugar Lump") {
+        if (nextSpellName(0) === "Sugar Lump") {
             M.castSpell(M.spellsById[1]);
             logEvent("auto100ConsistencyCombo", "Cast Force the Hand of Fate");
-        } else if (cpsBonus() < 1 && (nextSpellName(0) == "Clot" || nextSpellName(0) == "Ruin Cookies")) {
+        } else if (cpsBonus() < 1 && (nextSpellName(0) === "Clot" || nextSpellName(0) === "Ruin Cookies")) {
             M.castSpell(M.spellsById[2]);
             logEvent("auto100ConsistencyCombo", "Cast Stretch Time instead of FTHOF");
         } else {
@@ -982,25 +982,25 @@ function auto100ConsistencyComboAction() {
                         (Game.hasBuff("Dragon Harvest") || Game.hasBuff("Frenzy")) &&
                         (Game.hasBuff("Dragon Harvest").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1 ||
                             Game.hasBuff("Frenzy").time / 30 >= Math.ceil(13 * BuffTimeFactor()) - 1))) &&
-                BuildingSpecialBuff() == 1 &&
+                BuildingSpecialBuff() === 1 &&
                 BuildingBuffTime() >= Math.ceil(13 * BuffTimeFactor())
             ) {
                 // Turn off autoBuy
-                if (FrozenCookies.autoBuy == 1) {
+                if (FrozenCookies.autoBuy === 1) {
                     auto100ConsistencyComboAction.autobuyyes = 1;
                     FrozenCookies.autoBuy = 0;
                 } else {
                     auto100ConsistencyComboAction.autobuyyes = 0;
                 }
                 // Turn off Auto Dragon Auras
-                if (FrozenCookies.autoDragonToggle == 1) {
+                if (FrozenCookies.autoDragonToggle === 1) {
                     auto100ConsistencyComboAction.autodragonyes = 1;
                     FrozenCookies.autoDragonToggle = 0;
                 } else {
                     auto100ConsistencyComboAction.autodragonyes = 0;
                 }
                 // Turn off Auto Pantheon
-                if (FrozenCookies.autoWorshipToggle == 1) {
+                if (FrozenCookies.autoWorshipToggle === 1) {
                     auto100ConsistencyComboAction.autoworshipyes = 1;
                     FrozenCookies.autoWorshipToggle = 0;
                 } else {
@@ -1028,7 +1028,7 @@ function auto100ConsistencyComboAction() {
             return;
 
         case 3: // Check for whiskerbloom (14) and if not found, plant it
-            if (G.plantsById[14].unlocked == 0) {
+            if (G.plantsById[14].unlocked === 0) {
                 // Whiskerbloom seed unlocked
                 var whisk = false;
                 for (let i = 0; i < 6; i++) {
@@ -1059,8 +1059,8 @@ function auto100ConsistencyComboAction() {
 
         case 4: // Change dragon auras to radiant appetite and dragon's fortune
             if (
-                Game.dragonAura == 16 && // DF
-                !Game.dragonAura2 == 15 // RA
+                Game.dragonAura === 16 && // DF
+                Game.dragonAura2 !== 15 // RA
             ) {
                 Game.specialTab = "dragon";
                 Game.SetDragonAura(15, 1);
@@ -1072,8 +1072,8 @@ function auto100ConsistencyComboAction() {
             }
 
             if (
-                Game.dragonAura2 == 15 && // RA
-                !Game.dragonAura == 16 // DF
+                Game.dragonAura2 === 15 && // RA
+                Game.dragonAura !== 16 // DF
             ) {
                 Game.specialTab = "dragon";
                 Game.SetDragonAura(16, 0);
@@ -1181,7 +1181,7 @@ function auto100ConsistencyComboAction() {
                 swapIn(8, 1);
             }
             // Fallback: if swap not possible, still advance
-            if (T.swaps == 0 || Game.hasGod("mother")) {
+            if (T.swaps === 0 || Game.hasGod("mother")) {
                 // No swap performed, but continue
             }
             auto100ConsistencyComboAction.state = 15;
@@ -1202,7 +1202,7 @@ function auto100ConsistencyComboAction() {
 
         case 16: // Pop any other golden cookies as long as they're not wrath
             for (var i in Game.shimmers) {
-                if (Game.shimmers[i].type == "golden" && Game.shimmer.wrath != 1) {
+                if (Game.shimmers[i].type === "golden" && Game.shimmer.wrath !== 1) {
                     Game.shimmers[i].pop();
                 }
             }
@@ -1318,11 +1318,11 @@ function auto100ConsistencyComboAction() {
                     Game.recalculateGains = 1; // Ensure price is updated since Frenzy ended
                     Game.Upgrades["Golden switch [on]"].buy();
                 }
-                if (auto100ConsistencyComboAction.autogcyes == 1) {
+                if (auto100ConsistencyComboAction.autogcyes === 1) {
                     FrozenCookies.autoGC = 1;
                     auto100ConsistencyComboAction.autogcyes = 0;
                 }
-                if (auto100ConsistencyComboAction.autogsyes == 1) {
+                if (auto100ConsistencyComboAction.autogsyes === 1) {
                     FrozenCookies.autoGS = 1;
                     auto100ConsistencyComboAction.autogsyes = 0;
                 }
@@ -1381,19 +1381,19 @@ function auto100ConsistencyComboAction() {
             return;
 
         case 20: // Turning things back on
-            if (auto100ConsistencyComboAction.autobuyyes == 1) {
+            if (auto100ConsistencyComboAction.autobuyyes === 1) {
                 FrozenCookies.autoBuy = 1;
                 auto100ConsistencyComboAction.autobuyyes = 0;
             }
-            if (auto100ConsistencyComboAction.autogodyes == 1) {
+            if (auto100ConsistencyComboAction.autogodyes === 1) {
                 FrozenCookies.autoGodzamok = 1;
                 auto100ConsistencyComboAction.autogodyes = 0;
             }
-            if (auto100ConsistencyComboAction.autodragonyes == 1) {
+            if (auto100ConsistencyComboAction.autodragonyes === 1) {
                 FrozenCookies.autoDragonToggle = 1;
                 auto100ConsistencyComboAction.autodragonyes = 0;
             }
-            if (auto100ConsistencyComboAction.autoworshipyes == 1) {
+            if (auto100ConsistencyComboAction.autoworshipyes === 1) {
                 FrozenCookies.autoWorshipToggle = 1;
                 auto100ConsistencyComboAction.autoworshipyes = 0;
             }
@@ -1407,7 +1407,7 @@ function auto100ConsistencyComboAction() {
 function autoSweetAction() {
     if (!FrozenCookies.autoSweet) return;
 
-    if (FrozenCookies.autoBuy == 1) {
+    if (FrozenCookies.autoBuy === 1) {
         autoSweetAction.autobuyyes = 1;
         FrozenCookies.autoBuy = 0;
     } else {
@@ -1415,21 +1415,21 @@ function autoSweetAction() {
     }
 
     if (typeof Game.ready !== "undefined" && Game.ready) {
-        if (typeof autoSweetAction.state == "undefined") autoSweetAction.state = 0;
+        if (typeof autoSweetAction.state === "undefined") autoSweetAction.state = 0;
 
         if (!autoSweetAction.state) {
             if (
                 // Check first 10 spells
-                nextSpellName(0) == "Sugar Lump" ||
-                nextSpellName(1) == "Sugar Lump" ||
-                nextSpellName(2) == "Sugar Lump" ||
-                nextSpellName(3) == "Sugar Lump" ||
-                nextSpellName(4) == "Sugar Lump" ||
-                nextSpellName(5) == "Sugar Lump" ||
-                nextSpellName(6) == "Sugar Lump" ||
-                nextSpellName(7) == "Sugar Lump" ||
-                nextSpellName(8) == "Sugar Lump" ||
-                nextSpellName(9) == "Sugar Lump"
+                nextSpellName(0) === "Sugar Lump" ||
+                nextSpellName(1) === "Sugar Lump" ||
+                nextSpellName(2) === "Sugar Lump" ||
+                nextSpellName(3) === "Sugar Lump" ||
+                nextSpellName(4) === "Sugar Lump" ||
+                nextSpellName(5) === "Sugar Lump" ||
+                nextSpellName(6) === "Sugar Lump" ||
+                nextSpellName(7) === "Sugar Lump" ||
+                nextSpellName(8) === "Sugar Lump" ||
+                nextSpellName(9) === "Sugar Lump"
             ) {
                 autoSweetAction.state = 1;
             }
@@ -1452,16 +1452,16 @@ function autoSweetAction() {
                     (FrozenCookies.towerLimit && M.magic >= M.magicM) ||
                     (!FrozenCookies.towerLimit && M.magic >= M.magicM - 1)
                 ) {
-                    if (nextSpellName(0) != "Sugar Lump") {
+                    if (nextSpellName(0) !== "Sugar Lump") {
                         M.castSpell(M.spellsById[4]);
                         logEvent("autoSweet", "Cast Haggler's Charm while waiting for 'Sweet'");
                     }
-                    if (nextSpellName(0) == "Sugar Lump") {
+                    if (nextSpellName(0) === "Sugar Lump") {
                         M.castSpell(M.spellsById[1]);
                         autoSweetAction.state = 0;
                         logEvent("autoSweet", "Sugar Lump Get! Disabling Auto Sweet");
-                        if (autoSweetAction.manaPrev != -1) FrozenCookies.manaMax = autoSweetAction.manaPrev;
-                        if (autoSweetAction.autobuyyes == 1) {
+                        if (autoSweetAction.manaPrev !== -1) FrozenCookies.manaMax = autoSweetAction.manaPrev;
+                        if (autoSweetAction.autobuyyes === 1) {
                             FrozenCookies.autoBuy = 1;
                             autoSweetAction.autobuyyes = 0;
                         }
@@ -1477,12 +1477,12 @@ function autoSweetAction() {
 // Not a spell but only used by spell combos
 function autoSugarFrenzyAction() {
     if (
-        FrozenCookies.autoSugarFrenzy == 1 &&
+        FrozenCookies.autoSugarFrenzy === 1 &&
         ((!FrozenCookies.sugarBakingGuard && Game.lumps > 0) || Game.lumps > 100) &&
         cpsBonus() >= FrozenCookies.minASFMult &&
-        Game.UpgradesById["450"].unlocked == 1 && // Check to see if Sugar craving prestige upgrade has been purchased
-        Game.UpgradesById["452"].bought == 0 && // Check to see if sugar frenzy has already been bought this ascension
-        auto100ConsistencyComboAction.state == 5 &&
+        Game.UpgradesById["450"].unlocked === 1 && // Check to see if Sugar craving prestige upgrade has been purchased
+        Game.UpgradesById["452"].bought === 0 && // Check to see if sugar frenzy has already been bought this ascension
+        auto100ConsistencyComboAction.state === 5 &&
         ((!Game.hasBuff("Loan 1 (interest)") &&
             !Game.hasBuff("Loan 2 (interest)") &&
             !Game.hasBuff("Loan 3 (interest)")) ||
@@ -1494,12 +1494,12 @@ function autoSugarFrenzyAction() {
     }
 
     if (
-        FrozenCookies.autoSugarFrenzy == 2 &&
+        FrozenCookies.autoSugarFrenzy === 2 &&
         ((!FrozenCookies.sugarBakingGuard && Game.lumps > 0) || Game.lumps > 100) &&
         cpsBonus() >= FrozenCookies.minASFMult &&
-        Game.UpgradesById["450"].unlocked == 1 && // Check to see if Sugar craving prestige upgrade has been purchased
-        Game.UpgradesById["452"].bought == 0 && // Check to see if sugar frenzy has already been bought this ascension
-        (autoFTHOFComboAction.state == 3 || auto100ConsistencyComboAction.state == 5) &&
+        Game.UpgradesById["450"].unlocked === 1 && // Check to see if Sugar craving prestige upgrade has been purchased
+        Game.UpgradesById["452"].bought === 0 && // Check to see if sugar frenzy has already been bought this ascension
+        (autoFTHOFComboAction.state === 3 || auto100ConsistencyComboAction.state === 5) &&
         ((!Game.hasBuff("Loan 1 (interest)") &&
             !Game.hasBuff("Loan 2 (interest)") &&
             !Game.hasBuff("Loan 3 (interest)")) ||

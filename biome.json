@@ -15,10 +15,16 @@
             "recommended": false,
             "correctness": {
                 "recommended": true,
-                "noUndeclaredVariables": "off"
+                "noUndeclaredVariables": "off",
+                "noInnerDeclarations": "off",
+                "noUnusedFunctionParameters": "off",
+                "noUnusedVariables": "off"
             },
             "suspicious": {
-                "recommended": true
+                "recommended": true,
+                "noConfusingLabels": "off",
+                "noFunctionAssign": "off",
+                "noTemplateCurlyInString": "off"
             }
         }
     },

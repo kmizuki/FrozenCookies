@@ -37,10 +37,10 @@ function fcBeautify(value) {
     // The game will show Infinity otherwise, which is not useful
     if (FrozenCookies.numberDisplay === 3 && value >= 1e33) {
         // Use scientificNotation (case 4)
-        var output = numberFormatters[4](value)
+        var scientificOutput = numberFormatters[4](value)
             .toString()
             .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return negative ? "-" + output : output;
+        return negative ? "-" + scientificOutput : scientificOutput;
     }
     var formatter = numberFormatters[FrozenCookies.numberDisplay];
     var output = formatter(value)
@@ -69,7 +69,7 @@ function beautifyUpgradesAndAchievements() {
 function timeDisplay(seconds) {
     if (seconds === "---" || seconds === 0) {
         return "Done!";
-    } else if (seconds == Number.POSITIVE_INFINITY) {
+    } else if (seconds === Number.POSITIVE_INFINITY) {
         return "Never!";
     }
     seconds = Math.floor(seconds);
@@ -101,7 +101,7 @@ function drawCircles(t_d, x, y) {
         maxHeight,
         s_t,
         c = $("#backgroundLeftCanvas");
-    if (typeof c.measureText != "function") {
+    if (typeof c.measureText !== "function") {
         return;
     }
     maxRadius =
@@ -137,7 +137,7 @@ function drawCircles(t_d, x, y) {
     });
     maxWidth = maxMeasure.width;
     maxHeight = maxMeasure.height * t_d.length;
-    if (FrozenCookies.fancyui % 2 == 1)
+    if (FrozenCookies.fancyui % 2 === 1)
         c.drawRect({
             fillStyle: "rgba(153, 153, 153, 0.6)",
             x: x + maxRadius * 2 + maxWidth / 2 + 35,
@@ -178,7 +178,7 @@ function drawCircles(t_d, x, y) {
                 end: 360 * o_draw.f_percent,
             });
         }
-        if (FrozenCookies.fancyui % 2 == 1 && o_draw.name) {
+        if (FrozenCookies.fancyui % 2 === 1 && o_draw.name) {
             s_t = o_draw.name + (o_draw.display ? ": " + o_draw.display : "");
             c.drawText({
                 fontSize: "12px",
@@ -198,7 +198,7 @@ function hasBuildingSpecialBuff() {
     for (var i in Game.buffs) {
         if (
             Game.buffs[i].type &&
-            (Game.buffs[i].type.name == "building buff" || Game.buffs[i].type.name == "building debuff")
+            (Game.buffs[i].type.name === "building buff" || Game.buffs[i].type.name === "building debuff")
         ) {
             return Game.buffs[i].time;
         }
@@ -210,7 +210,7 @@ function buildingSpecialBuffValue() {
     for (var i in Game.buffs) {
         if (
             Game.buffs[i].type &&
-            (Game.buffs[i].type.name == "building buff" || Game.buffs[i].type.name == "building debuff")
+            (Game.buffs[i].type.name === "building buff" || Game.buffs[i].type.name === "building debuff")
         ) {
             return Game.buffs[i].multCpS;
         }
@@ -282,7 +282,7 @@ function updateTimers() {
             display: timeDisplay(divCps(Math.max(chainTotal + bankTotal - Game.cookies - chainFinished, 0), actualCps)),
         });
     }
-    if (purchaseTotal > 0 && nextPurchase().type == "building" && Game.season == "fools") {
+    if (purchaseTotal > 0 && nextPurchase().type === "building" && Game.season === "fools") {
         t_draw.push({
             f_percent: purchaseCompletion,
             c1: "rgba(17, 17, 17, 1)",

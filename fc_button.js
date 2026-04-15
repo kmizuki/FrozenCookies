@@ -105,7 +105,7 @@ function getUpgradeTooltip(purchaseRec) {
 function colorizeScore(score) {
     var classNames = ["best", "good", "average", "bad", "worst"];
     var result;
-    if (score == 1) {
+    if (score === 1) {
         result = classNames[0];
     } else if (score > 0.9) {
         result = classNames[1];
@@ -126,7 +126,7 @@ function rebuildStore(recalculate) {
     store[0].innerHTML = "";
     Game.ObjectsById.forEach(function (me) {
         var purchaseRec = recommendations.filter(function (a) {
-                return a.id == me.id && a.type == "building";
+                return a.id === me.id && a.type === "building";
             })[0],
             button = $("<div>")
                 .addClass("product")
@@ -170,7 +170,7 @@ function rebuildUpgrades(recalculate) {
     });
     Game.UpgradesInStore.forEach(function (me) {
         var purchaseRec = recommendations.filter(function (a) {
-            return a.id == me.id && a.type == "upgrade";
+            return a.id === me.id && a.type === "upgrade";
         })[0];
         if (!purchaseRec) {
             console.log(me.name + " not found in recommendationList()");
@@ -199,7 +199,7 @@ function rebuildUpgrades(recalculate) {
     //  Game.Draw();
 }
 
-if (typeof Game.oldUpdateMenu != "function") {
+if (typeof Game.oldUpdateMenu !== "function") {
     Game.oldUpdateMenu = Game.UpdateMenu;
 }
 
@@ -353,13 +353,13 @@ function FCMenu() {
             (recommendation = nextPurchase()),
             (chainRecommendation = nextChainedPurchase()),
             (isChained = !(
-                recommendation.id == chainRecommendation.id && recommendation.type == chainRecommendation.type
+                recommendation.id === chainRecommendation.id && recommendation.type === chainRecommendation.type
             )),
             (currentFrenzy = cpsBonus() * clickBuffBonus()),
             (bankLevel = bestBank(chainRecommendation.efficiency)),
             (actualCps = Game.cookiesPs + Game.mouseCps() * FrozenCookies.cookieClickSpeed * FrozenCookies.autoClick),
             (chocolateRecoup =
-                (recommendation.type == "upgrade" ? recommendation.cost : recommendation.cost * 0.425) /
+                (recommendation.type === "upgrade" ? recommendation.cost : recommendation.cost * 0.425) /
                 (recommendation.delta_cps * 21));
 
         function buildListing(label, name) {
@@ -468,9 +468,9 @@ function FCMenu() {
                             groupClass = "fc-multichoice-group-2col";
                         }
                         // Render a group of buttons for direct selection, stacked or in columns
-                        var buttonGroup = $("<div>").addClass(groupClass);
+                        var multiChoiceGroup = $("<div>").addClass(groupClass);
                         display.forEach(function (label, idx) {
-                            buttonGroup.append(
+                            multiChoiceGroup.append(
                                 $("<button>")
                                     .addClass("option fc-multichoice-btn")
                                     .toggleClass("selected", idx === current)
@@ -481,7 +481,7 @@ function FCMenu() {
                                     .text(label),
                             );
                         });
-                        listing.append(buttonGroup);
+                        listing.append(multiChoiceGroup);
                     }
                     if (extras) {
                         // If extras is a function, call it with FrozenCookies, else treat as string
@@ -519,8 +519,8 @@ function FCMenu() {
         subsection.append($("<div>").addClass("title").text("Golden Cookie Information"));
         currentCookies = Math.min(Game.cookies, FrozenCookies.targetBank.cost);
         maxCookies = bestBank(Number.POSITIVE_INFINITY).cost;
-        isTarget = FrozenCookies.targetBank.cost == FrozenCookies.currentBank.cost;
-        isMax = currentCookies == maxCookies;
+        isTarget = FrozenCookies.targetBank.cost === FrozenCookies.currentBank.cost;
+        isMax = currentCookies === maxCookies;
         targetTxt = isTarget ? "" : " (Building Bank)";
         maxTxt = isMax ? " (Max)" : "";
         subsection.append(buildListing("Current Frenzy", Beautify(currentFrenzy)));
@@ -546,7 +546,7 @@ function FCMenu() {
         subsection.append(buildListing("Cookie Bank Required for Max Chain", Beautify(chainBank())));
         subsection.append(buildListing("Estimated Cookie CPS", Beautify(gcPs(cookieValue(currentCookies)))));
         subsection.append(buildListing("Golden Cookie Clicks", Beautify(Game.goldenClicks)));
-        if (FrozenCookies.showMissedCookies == 1) {
+        if (FrozenCookies.showMissedCookies === 1) {
             subsection.append(buildListing("Missed Golden Cookie Clicks", Beautify(Game.missedGoldenClicks)));
         }
         subsection.append(buildListing("Last Golden Cookie Effect", Game.shimmerTypes.golden.last));
@@ -557,9 +557,9 @@ function FCMenu() {
         subsection.append($("<div>").addClass("title").text("Frenzy Times"));
         $.each(
             Object.keys(FrozenCookies.frenzyTimes)
-                .sort((a, b) => parseInt(a) - parseInt(b))
+                .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
                 .reduce((result, rate) => {
-                    result[parseInt(rate)] = (result[parseInt(rate)] || 0) + FrozenCookies.frenzyTimes[rate];
+                    result[parseInt(rate, 10)] = (result[parseInt(rate, 10)] || 0) + FrozenCookies.frenzyTimes[rate];
                     return result;
                 }, {}),
             (rate, time) => {

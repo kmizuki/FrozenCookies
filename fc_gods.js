@@ -5,11 +5,11 @@ function swapIn(godId, targetSlot) {
     T.lastSwapT = 0;
     var div = l("templeGod" + godId);
     var prev = T.slot[targetSlot]; //id of God currently in slot
-    if (prev != -1) {
+    if (prev !== -1) {
         //when something's in there already
         prev = T.godsById[prev]; //prev becomes god object
         var prevDiv = l("templeGod" + prev.id);
-        if (T.godsById[godId].slot != -1) l("templeSlot" + T.godsById[godId].slot).appendChild(prevDiv);
+        if (T.godsById[godId].slot !== -1) l("templeSlot" + T.godsById[godId].slot).appendChild(prevDiv);
         else {
             var other = l("templeGodPlaceholder" + prev.id);
             other.parentNode.insertBefore(prevDiv, other);
@@ -32,7 +32,7 @@ function autoWorship0Action() {
         !FrozenCookies.autoWorshipToggle ||
         !FrozenCookies.autoWorship0 ||
         FrozenCookies.autoCyclius ||
-        T.slot[0] == FrozenCookies.autoWorship0
+        T.slot[0] === FrozenCookies.autoWorship0
     ) {
         return;
     }
@@ -47,12 +47,12 @@ function autoWorship1Action() {
         !FrozenCookies.autoWorshipToggle ||
         !FrozenCookies.autoWorship1 ||
         FrozenCookies.autoCyclius ||
-        T.slot[1] == FrozenCookies.autoWorship1
+        T.slot[1] === FrozenCookies.autoWorship1
     ) {
         return;
     }
 
-    if (T.slot[0] == FrozenCookies.autoWorship1) {
+    if (T.slot[0] === FrozenCookies.autoWorship1) {
         FrozenCookies.autoworship1 = 0;
         logEvent("autoWorship", "Can't worship the same god in Diamond and Ruby slots!");
         return;
@@ -68,17 +68,17 @@ function autoWorship2Action() {
         !FrozenCookies.autoWorshipToggle ||
         !FrozenCookies.autoWorship2 ||
         FrozenCookies.autoCyclius ||
-        T.slot[2] == FrozenCookies.autoWorship2
+        T.slot[2] === FrozenCookies.autoWorship2
     ) {
         return;
     }
 
-    if (T.slot[0] == FrozenCookies.autoWorship2) {
+    if (T.slot[0] === FrozenCookies.autoWorship2) {
         FrozenCookies.autoworship2 = 0;
         logEvent("autoWorship", "Can't worship the same god in Diamond and Jade slots!");
         return;
     }
-    if (T.slot[1] == FrozenCookies.autoWorship2) {
+    if (T.slot[1] === FrozenCookies.autoWorship2) {
         FrozenCookies.autoworship2 = 0;
         logEvent("autoWorship", "Can't worship the same god in Ruby and Jade slots!");
         return;
@@ -475,7 +475,7 @@ function autoDragonsCurve() {
     //Swap dragon auras to try for unusual lumps
     if (Game.dragonLevel < 21 || FrozenCookies.dragonsCurve < 1) return;
 
-    if (FrozenCookies.autoDragonToggle == 1) {
+    if (FrozenCookies.autoDragonToggle === 1) {
         autoDragonsCurve.autodragonyes = 1;
         FrozenCookies.autoDragonToggle = 0;
     } else {
@@ -483,7 +483,7 @@ function autoDragonsCurve() {
     }
 
     if (Game.dragonLevel > 26 && !Game.hasAura("Dragon's Curve")) {
-        if (Game.dragonAura == 18) {
+        if (Game.dragonAura === 18) {
             Game.SetDragonAura(17, 1);
             Game.ConfirmPrompt();
         } else {
@@ -498,8 +498,8 @@ function autoDragonsCurve() {
         logEvent("autoDragonsCurve", "Dragon auras swapped to manipulate new Sugar Lump");
     }
 
-    if (FrozenCookies.dragonsCurve == 2 && Game.dragonLevel > 26 && !Game.hasAura("Reality Bending")) {
-        if (Game.dragonAura == 17) {
+    if (FrozenCookies.dragonsCurve === 2 && Game.dragonLevel > 26 && !Game.hasAura("Reality Bending")) {
+        if (Game.dragonAura === 17) {
             Game.SetDragonAura(18, 1);
             Game.ConfirmPrompt();
         } else {
@@ -510,7 +510,7 @@ function autoDragonsCurve() {
 
     Game.clickLump();
 
-    if (autoDragonsCurve.autodragonyes == 1) {
+    if (autoDragonsCurve.autodragonyes === 1) {
         FrozenCookies.autoDragonToggle = 1;
         autoDragonsCurve.autodragonyes = 0;
     }
@@ -563,13 +563,13 @@ function autoDragonAura0Action() {
         Game.dragonLevel < 5 ||
         !FrozenCookies.autoDragonAura0 ||
         !FrozenCookies.autoDragonToggle ||
-        Game.dragonAura == FrozenCookies.autoDragonAura0 ||
-        Game.dragonAura2 == FrozenCookies.autoDragonAura0
+        Game.dragonAura === FrozenCookies.autoDragonAura0 ||
+        Game.dragonAura2 === FrozenCookies.autoDragonAura0
     ) {
         return;
     }
 
-    if (FrozenCookies.autoDragonAura0 == FrozenCookies.autoDragonAura1) {
+    if (FrozenCookies.autoDragonAura0 === FrozenCookies.autoDragonAura1) {
         FrozenCookies.autoDragonAura1 = 0;
         logEvent("autoDragon", "Can't set both auras to the same one!");
         return;
@@ -577,8 +577,8 @@ function autoDragonAura0Action() {
 
     if (
         Game.dragonLevel > 26 &&
-        Game.dragonAura == FrozenCookies.autoDragonAura1 &&
-        Game.dragonAura2 != FrozenCookies.autoDragonAura0
+        Game.dragonAura === FrozenCookies.autoDragonAura1 &&
+        Game.dragonAura2 !== FrozenCookies.autoDragonAura0
     ) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(FrozenCookies.autoDragonAura0, 1);
@@ -602,19 +602,22 @@ function autoDragonAura1Action() {
         !FrozenCookies.autoDragonAura0 ||
         !FrozenCookies.autoDragonAura1 ||
         !FrozenCookies.autoDragonToggle ||
-        Game.dragonAura == FrozenCookies.autoDragonAura1 ||
-        Game.dragonAura2 == FrozenCookies.autoDragonAura1
+        Game.dragonAura === FrozenCookies.autoDragonAura1 ||
+        Game.dragonAura2 === FrozenCookies.autoDragonAura1
     ) {
         return;
     }
 
-    if (Game.dragonAura2 == FrozenCookies.autoDragonAura0 && Game.dragonAura != FrozenCookies.autoDragonAura1) {
+    if (Game.dragonAura2 === FrozenCookies.autoDragonAura0 && Game.dragonAura !== FrozenCookies.autoDragonAura1) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(FrozenCookies.autoDragonAura1, 0);
         Game.ConfirmPrompt();
         logEvent("autoDragon", "Set second dragon aura");
         return;
-    } else if (Game.dragonAura == FrozenCookies.autoDragonAura0 && Game.dragonAura2 != FrozenCookies.autoDragonAura1) {
+    } else if (
+        Game.dragonAura === FrozenCookies.autoDragonAura0 &&
+        Game.dragonAura2 !== FrozenCookies.autoDragonAura1
+    ) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(FrozenCookies.autoDragonAura1, 1);
         Game.ConfirmPrompt();
@@ -627,7 +630,7 @@ function autoDragonAura1Action() {
 function autoDragonOrbsAction() {
     if (!T) return;
     if (
-        FrozenCookies.autoDragonOrbs == 1 &&
+        FrozenCookies.autoDragonOrbs === 1 &&
         (!Game.hasAura("Dragon Orbs") || Game.hasGod("ruin") || Game.Objects["You"].amount < 1)
     ) {
         FrozenCookies.autoDragonOrbs = 0;
