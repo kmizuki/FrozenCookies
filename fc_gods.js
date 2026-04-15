@@ -9,8 +9,7 @@ function swapIn(godId, targetSlot) {
         //when something's in there already
         prev = T.godsById[prev]; //prev becomes god object
         var prevDiv = l("templeGod" + prev.id);
-        if (T.godsById[godId].slot != -1)
-            l("templeSlot" + T.godsById[godId].slot).appendChild(prevDiv);
+        if (T.godsById[godId].slot != -1) l("templeSlot" + T.godsById[godId].slot).appendChild(prevDiv);
         else {
             var other = l("templeGodPlaceholder" + prev.id);
             other.parentNode.insertBefore(prevDiv, other);
@@ -23,10 +22,7 @@ function swapIn(godId, targetSlot) {
     PlaySound("snd/spirit.mp3");
 
     var rect = l("templeGod" + godId).getBoundingClientRect();
-    Game.SparkleAt(
-        (rect.left + rect.right) / 2,
-        (rect.top + rect.bottom) / 2 - 24
-    );
+    Game.SparkleAt((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2 - 24);
 }
 
 function autoWorship0Action() {
@@ -58,10 +54,7 @@ function autoWorship1Action() {
 
     if (T.slot[0] == FrozenCookies.autoWorship1) {
         FrozenCookies.autoworship1 = 0;
-        logEvent(
-            "autoWorship",
-            "Can't worship the same god in Diamond and Ruby slots!"
-        );
+        logEvent("autoWorship", "Can't worship the same god in Diamond and Ruby slots!");
         return;
     }
 
@@ -82,18 +75,12 @@ function autoWorship2Action() {
 
     if (T.slot[0] == FrozenCookies.autoWorship2) {
         FrozenCookies.autoworship2 = 0;
-        logEvent(
-            "autoWorship",
-            "Can't worship the same god in Diamond and Jade slots!"
-        );
+        logEvent("autoWorship", "Can't worship the same god in Diamond and Jade slots!");
         return;
     }
     if (T.slot[1] == FrozenCookies.autoWorship2) {
         FrozenCookies.autoworship2 = 0;
-        logEvent(
-            "autoWorship",
-            "Can't worship the same god in Ruby and Jade slots!"
-        );
+        logEvent("autoWorship", "Can't worship the same god in Ruby and Jade slots!");
         return;
     }
 
@@ -115,10 +102,7 @@ function autoCycliusAction() {
     // autoCyclius == 2 is three-slots mode
     if (FrozenCookies.autoCyclius === 2 && Game.hasAura("Supreme Intellect")) {
         FrozenCookies.autoCyclius = 1;
-        logEvent(
-            "autoCyclius",
-            "Supreme Intellect detected! Swapping Cyclius to two slot mode"
-        );
+        logEvent("autoCyclius", "Supreme Intellect detected! Swapping Cyclius to two slot mode");
     }
 
     // Time constants (in minutes)
@@ -145,12 +129,7 @@ function autoCycliusAction() {
 
     // Helper to swap gods if needed
     function swapIfNeeded(godId, slot, label) {
-        if (
-            godId !== 11 &&
-            godId !== 3 &&
-            T.slot[slot] !== godId &&
-            T.swaps > 0
-        ) {
+        if (godId !== 11 && godId !== 3 && T.slot[slot] !== godId && T.swaps > 0) {
             swapIn(godId, slot);
             logEvent("autoCyclius", `set desired god to ${label}`);
         }
@@ -172,11 +151,7 @@ function autoCycliusAction() {
             logEvent("autoCyclius", "Putting Cyclius in RUBY");
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
-        } else if (
-            T.slot[2] !== 3 &&
-            currentTime >= times.Jade1 &&
-            currentTime < times.Diamond3
-        ) {
+        } else if (T.slot[2] !== 3 && currentTime >= times.Jade1 && currentTime < times.Diamond3) {
             // 4:00 UTC to 12:00 UTC, JADE
             swapIn(3, 2);
             logEvent("autoCyclius", "Putting Cyclius in JADE");
@@ -447,8 +422,7 @@ function autoRigidel() {
     if (!T) return; // Exit if Pantheon doesn't exist
 
     const started = Game.lumpT;
-    const timeToRipe =
-        (Math.ceil(Game.lumpRipeAge) - (Date.now() - started)) / 60000; // Minutes until sugar lump ripens
+    const timeToRipe = (Math.ceil(Game.lumpRipeAge) - (Date.now() - started)) / 60000; // Minutes until sugar lump ripens
     const orderLvl = Game.hasGod("order") ? Game.hasGod("order") : 0;
     let prevGod = -1;
     let tryHarvest = false;
@@ -489,10 +463,7 @@ function autoRigidel() {
             }
             logEvent("autoRigidel", "Sugar lump harvested early");
         } else {
-            logEvent(
-                "autoRigidel",
-                "Suppressed early harvest of unripe sugar lump"
-            );
+            logEvent("autoRigidel", "Suppressed early harvest of unripe sugar lump");
         }
     }
 
@@ -511,43 +482,30 @@ function autoDragonsCurve() {
         autoDragonsCurve.autodragonyes = 0;
     }
 
-    if (
-        Game.dragonLevel > 26 &&
-        !Game.hasAura("Dragon's Curve")
-    ) {
-	    if (Game.dragonAura == 18) {
-	        Game.SetDragonAura(17, 1);
-	        Game.ConfirmPrompt();
-	    } else {
+    if (Game.dragonLevel > 26 && !Game.hasAura("Dragon's Curve")) {
+        if (Game.dragonAura == 18) {
+            Game.SetDragonAura(17, 1);
+            Game.ConfirmPrompt();
+        } else {
             Game.SetDragonAura(17, 0);
             Game.ConfirmPrompt();
-	    }
-        logEvent(
-            "autoDragonsCurve",
-            "Dragon auras swapped to manipulate new Sugar Lump"
-        );
+        }
+        logEvent("autoDragonsCurve", "Dragon auras swapped to manipulate new Sugar Lump");
     } else if (!Game.hasAura("Dragon's Curve")) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(17, 0);
         Game.ConfirmPrompt();
-        logEvent(
-            "autoDragonsCurve",
-            "Dragon auras swapped to manipulate new Sugar Lump"
-        );
+        logEvent("autoDragonsCurve", "Dragon auras swapped to manipulate new Sugar Lump");
     }
 
-    if (
-        FrozenCookies.dragonsCurve == 2 &&
-        Game.dragonLevel > 26 &&
-        !Game.hasAura("Reality Bending")
-    ) {
+    if (FrozenCookies.dragonsCurve == 2 && Game.dragonLevel > 26 && !Game.hasAura("Reality Bending")) {
         if (Game.dragonAura == 17) {
-	        Game.SetDragonAura(18, 1);
-	        Game.ConfirmPrompt();
-	    } else {
-	        Game.SetDragonAura(18, 0);
-	        Game.ConfirmPrompt();
-	    }
+            Game.SetDragonAura(18, 1);
+            Game.ConfirmPrompt();
+        } else {
+            Game.SetDragonAura(18, 0);
+            Game.ConfirmPrompt();
+        }
     }
 
     Game.clickLump();
@@ -560,11 +518,7 @@ function autoDragonsCurve() {
 }
 
 function autoDragonAction() {
-    if (
-        !Game.HasUnlocked("A crumbly egg") ||
-        Game.dragonLevel > 26 ||
-        hasClickBuff()
-    ) {
+    if (!Game.HasUnlocked("A crumbly egg") || Game.dragonLevel > 26 || hasClickBuff()) {
         return;
     }
 
@@ -573,43 +527,25 @@ function autoDragonAction() {
         logEvent("autoDragon", "Bought an egg");
     }
 
-    if (
-        Game.dragonLevel < Game.dragonLevels.length - 1 &&
-        Game.dragonLevels[Game.dragonLevel].cost()
-    ) {
+    if (Game.dragonLevel < Game.dragonLevels.length - 1 && Game.dragonLevels[Game.dragonLevel].cost()) {
         Game.specialTab = "dragon";
         Game.UpgradeDragon();
-        if (Game.dragonLevel + 1 >= Game.dragonLevels.length)
-            Game.ToggleSpecialMenu();
-        logEvent(
-            "autoDragon",
-            "Upgraded the dragon to level " + Game.dragonLevel
-        );
+        if (Game.dragonLevel + 1 >= Game.dragonLevels.length) Game.ToggleSpecialMenu();
+        logEvent("autoDragon", "Upgraded the dragon to level " + Game.dragonLevel);
     }
 }
 
 function petDragonAction() {
-    if (
-        !Game.Has("A crumbly egg") ||
-        Game.dragonLevel < 4 ||
-        !Game.Has("Pet the dragon") ||
-        hasClickBuff()
-    ) {
+    if (!Game.Has("A crumbly egg") || Game.dragonLevel < 4 || !Game.Has("Pet the dragon") || hasClickBuff()) {
         return;
     }
 
     //Calculate current pet drop and if we have it
     Math.seedrandom(Game.seed + "/dragonTime");
-    let drops = [
-        "Dragon scale",
-        "Dragon claw",
-        "Dragon fang",
-        "Dragon teddy bear",
-    ];
+    let drops = ["Dragon scale", "Dragon claw", "Dragon fang", "Dragon teddy bear"];
     drops = shuffle(drops);
     Math.seedrandom();
-    let currentDrop =
-        drops[Math.floor((new Date().getMinutes() / 60) * drops.length)];
+    let currentDrop = drops[Math.floor((new Date().getMinutes() / 60) * drops.length)];
 
     //Pet the dragon
     if (!Game.Has(currentDrop) && !Game.HasUnlocked(currentDrop)) {
@@ -672,19 +608,13 @@ function autoDragonAura1Action() {
         return;
     }
 
-    if (
-        Game.dragonAura2 == FrozenCookies.autoDragonAura0 &&
-        Game.dragonAura != FrozenCookies.autoDragonAura1
-    ) {
+    if (Game.dragonAura2 == FrozenCookies.autoDragonAura0 && Game.dragonAura != FrozenCookies.autoDragonAura1) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(FrozenCookies.autoDragonAura1, 0);
         Game.ConfirmPrompt();
         logEvent("autoDragon", "Set second dragon aura");
         return;
-    } else if (
-        Game.dragonAura == FrozenCookies.autoDragonAura0 &&
-        Game.dragonAura2 != FrozenCookies.autoDragonAura1
-    ) {
+    } else if (Game.dragonAura == FrozenCookies.autoDragonAura0 && Game.dragonAura2 != FrozenCookies.autoDragonAura1) {
         Game.specialTab = "dragon";
         Game.SetDragonAura(FrozenCookies.autoDragonAura1, 1);
         Game.ConfirmPrompt();
@@ -698,9 +628,7 @@ function autoDragonOrbsAction() {
     if (!T) return;
     if (
         FrozenCookies.autoDragonOrbs == 1 &&
-        (!Game.hasAura("Dragon Orbs") ||
-            Game.hasGod("ruin") ||
-            Game.Objects["You"].amount < 1)
+        (!Game.hasAura("Dragon Orbs") || Game.hasGod("ruin") || Game.Objects["You"].amount < 1)
     ) {
         FrozenCookies.autoDragonOrbs = 0;
         logEvent("autoDragonOrbs", "Not currently possible to use Dragon Orbs");
@@ -715,11 +643,7 @@ function autoDragonOrbsAction() {
         logEvent(
             "autoDragonOrbs",
             "Sold 1 You for " +
-                (Beautify(
-                    Game.Objects["You"].price *
-                        Game.Objects["You"].getSellMultiplier()
-                ) +
-                    " cookies and a wish")
+                (Beautify(Game.Objects["You"].price * Game.Objects["You"].getSellMultiplier()) + " cookies and a wish"),
         );
     }
 }

@@ -1,0 +1,6 @@
+{
+    "templates": ["Node", "macOS"],
+    "custom": {
+        "frozen_cookies": [".codex"]
+    }
+}

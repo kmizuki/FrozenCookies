@@ -1,0 +1,14 @@
+[tools]
+bun = "latest"
+
+[tasks.check]
+run = "bun run check"
+
+[tasks.fix]
+run = "bun run fix"
+
+[tasks.format]
+run = "bun run format"
+
+[tasks.lint]
+run = "bun run lint"

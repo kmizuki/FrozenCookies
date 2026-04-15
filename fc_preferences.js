@@ -100,11 +100,7 @@ FrozenCookies.preferenceValues = {
     },
     autoAscend: {
         hint: "Choose auto-ascend method.",
-        display: [
-            "Auto-ascend OFF",
-            "Auto-ascend at SET amount",
-            "Auto-ascend when prestige is DOUBLED",
-        ],
+        display: ["Auto-ascend OFF", "Auto-ascend at SET amount", "Auto-ascend when prestige is DOUBLED"],
         default: 0,
         extras: '<a class="option" id="chipsToAscend" onclick="updateAscendAmount(\'HCAscendAmount\');">${HCAscendAmount} heavenly chips</a>',
     },
@@ -116,11 +112,7 @@ FrozenCookies.preferenceValues = {
     },
     autoWrinkler: {
         hint: "Auto-pop wrinklers.",
-        display: [
-            "Autopop Wrinklers OFF",
-            "Autopop Wrinklers EFFICIENTLY",
-            "Autopop Wrinklers INSTANTLY",
-        ],
+        display: ["Autopop Wrinklers OFF", "Autopop Wrinklers EFFICIENTLY", "Autopop Wrinklers INSTANTLY"],
         default: 0,
     },
     shinyPop: {
@@ -130,20 +122,12 @@ FrozenCookies.preferenceValues = {
     },
     autoSL: {
         hint: "Auto-harvest sugar lumps (optionally with Rigidel).",
-        display: [
-            "Autoharvest SL OFF",
-            "Autoharvest SL ON",
-            "Autoharvest SL ON + AUTO RIGIDEL",
-        ],
+        display: ["Autoharvest SL OFF", "Autoharvest SL ON", "Autoharvest SL ON + AUTO RIGIDEL"],
         default: 0,
     },
     dragonsCurve: {
         hint: "Swap in Dragon's Curve (and Reality Bending) for lump harvest.",
-        display: [
-            "Auto-Dragon's Curve OFF",
-            "Auto-Dragon's Curve ON",
-            "Auto-Dragon's Curve ON + REALITY BENDING",
-        ],
+        display: ["Auto-Dragon's Curve OFF", "Auto-Dragon's Curve ON", "Auto-Dragon's Curve ON + REALITY BENDING"],
         default: 0,
     },
     sugarBakingGuard: {
@@ -240,11 +224,7 @@ FrozenCookies.preferenceValues = {
     },
     autoCyclius: {
         hint: "Auto-swap Cyclius for max CpS (set gods above, do not use Cyclius).",
-        display: [
-            "Auto-Cyclius OFF",
-            "Auto-Cyclius in RUBY and JADE",
-            "Auto-Cyclius in all slots",
-        ],
+        display: ["Auto-Cyclius OFF", "Auto-Cyclius in RUBY and JADE", "Auto-Cyclius in all slots"],
         default: 0,
     },
 
@@ -282,19 +262,12 @@ FrozenCookies.preferenceValues = {
     },
     auto100ConsistencyCombo: {
         hint: "⚠️ EXPERIMENTAL: Auto-cast 100% Consistency Combo.",
-        display: [
-            "Auto Cast 100% Consistency Combo OFF",
-            "Auto Cast 100% Consistency Combo ON",
-        ],
+        display: ["Auto Cast 100% Consistency Combo OFF", "Auto Cast 100% Consistency Combo ON"],
         default: 0,
     },
     autoSugarFrenzy: {
         hint: "Auto-buy Sugar Frenzy during first combo of X Frenzy.",
-        display: [
-            "Auto Sugar Frenzy OFF",
-            "ASF for 100% Consistency Combo",
-            "ASF also for Double Cast Combo",
-        ],
+        display: ["Auto Sugar Frenzy OFF", "ASF for 100% Consistency Combo", "ASF also for Double Cast Combo"],
         default: 0,
         extras: '<a class="option" id="minASFMult" onclick="updateASFMultMin(\'minASFMult\');">x${minASFMult} minimum Frenzy</a>',
     },
@@ -417,11 +390,7 @@ FrozenCookies.preferenceValues = {
     },
     freeSeason: {
         hint: "Stay in free base season if no upgrades needed.",
-        display: [
-            "Free Season OFF",
-            "Free Season for CHRISTMAS and BUSINESS DAY",
-            "Free Season for ALL",
-        ],
+        display: ["Free Season OFF", "Free Season for CHRISTMAS and BUSINESS DAY", "Free Season for ALL"],
         default: 1,
     },
     autoEaster: {
@@ -513,12 +482,7 @@ FrozenCookies.preferenceValues = {
     },
     fancyui: {
         hint: "Infobox style (text, wheel, or both).",
-        display: [
-            "Infobox OFF",
-            "Infobox TEXT ONLY",
-            "Infobox WHEEL ONLY",
-            "Infobox WHEEL & TEXT",
-        ],
+        display: ["Infobox OFF", "Infobox TEXT ONLY", "Infobox WHEEL ONLY", "Infobox WHEEL & TEXT"],
         default: 0,
     },
     logging: {

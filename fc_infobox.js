@@ -1,9 +1,5 @@
 function scientificNotation(value) {
-    if (
-        value === 0 ||
-        !Number.isFinite(value) ||
-        (Math.abs(value) >= 1 && Math.abs(value) <= 1000)
-    ) {
+    if (value === 0 || !Number.isFinite(value) || (Math.abs(value) >= 1 && Math.abs(value) <= 1000)) {
         return rawFormatter(value);
     }
     value = parseFloat(value);
@@ -131,7 +127,7 @@ function drawCircles(t_d, x, y) {
         }),
         function (str) {
             return str.length;
-        }
+        },
     );
     var maxMeasure = c.measureText({
         fontSize: "12px",
@@ -202,8 +198,7 @@ function hasBuildingSpecialBuff() {
     for (var i in Game.buffs) {
         if (
             Game.buffs[i].type &&
-            (Game.buffs[i].type.name == "building buff" ||
-                Game.buffs[i].type.name == "building debuff")
+            (Game.buffs[i].type.name == "building buff" || Game.buffs[i].type.name == "building debuff")
         ) {
             return Game.buffs[i].time;
         }
@@ -215,8 +210,7 @@ function buildingSpecialBuffValue() {
     for (var i in Game.buffs) {
         if (
             Game.buffs[i].type &&
-            (Game.buffs[i].type.name == "building buff" ||
-                Game.buffs[i].type.name == "building debuff")
+            (Game.buffs[i].type.name == "building buff" || Game.buffs[i].type.name == "building debuff")
         ) {
             return Game.buffs[i].multCpS;
         }
@@ -240,16 +234,13 @@ function updateTimers() {
         maxColor,
         height,
         gc_delay =
-            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.5) -
-                Game.shimmerTypes.golden.time) /
+            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.5) - Game.shimmerTypes.golden.time) /
             maxCookieTime(),
         gc_max_delay =
-            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.99) -
-                Game.shimmerTypes.golden.time) /
+            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.99) - Game.shimmerTypes.golden.time) /
             maxCookieTime(),
         gc_min_delay =
-            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.01) -
-                Game.shimmerTypes.golden.time) /
+            (probabilitySpan("golden", Game.shimmerTypes.golden.time, 0.01) - Game.shimmerTypes.golden.time) /
             maxCookieTime(),
         clot_delay = buffDuration("Clot") / maxCookieTime(),
         elder_frenzy_delay = buffDuration("Elder frenzy") / maxCookieTime(),
@@ -263,9 +254,7 @@ function updateTimers() {
         // useless decimal_HC_complete = (Game.HowMuchPrestige(Game.cookiesEarned + Game.cookiesReset)%1),
         bankTotal = delayAmount(),
         purchaseTotal = nextPurchase().cost,
-        bankCompletion = bankTotal
-            ? Math.min(Game.cookies, bankTotal) / bankTotal
-            : 0,
+        bankCompletion = bankTotal ? Math.min(Game.cookies, bankTotal) / bankTotal : 0,
         purchaseCompletion = Game.cookies / (bankTotal + purchaseTotal),
         bankPurchaseCompletion = bankTotal / (bankTotal + purchaseTotal),
         chainTotal = 0,
@@ -274,21 +263,14 @@ function updateTimers() {
     c = $("#backgroundLeftCanvas");
     if (nextChainedPurchase().cost > nextPurchase().cost) {
         chainPurchase = nextChainedPurchase().purchase;
-        chainTotal =
-            upgradePrereqCost(chainPurchase, true) - chainPurchase.getPrice();
-        chainFinished =
-            chainTotal -
-            (upgradePrereqCost(chainPurchase) - chainPurchase.getPrice());
-        chainCompletion =
-            (chainFinished + Math.max(Game.cookies - bankTotal, 0)) /
-            (bankTotal + chainTotal);
+        chainTotal = upgradePrereqCost(chainPurchase, true) - chainPurchase.getPrice();
+        chainFinished = chainTotal - (upgradePrereqCost(chainPurchase) - chainPurchase.getPrice());
+        chainCompletion = (chainFinished + Math.max(Game.cookies - bankTotal, 0)) / (bankTotal + chainTotal);
     }
-    bankPercent =
-        Math.min(Game.cookies, bankTotal) / (bankTotal + purchaseTotal);
+    bankPercent = Math.min(Game.cookies, bankTotal) / (bankTotal + purchaseTotal);
     purchasePercent = purchaseTotal / (purchaseTotal + bankTotal);
     bankMax = bankTotal / (purchaseTotal + bankTotal);
-    actualCps =
-        Game.cookiesPs + Game.mouseCps() * FrozenCookies.cookieClickSpeed;
+    actualCps = Game.cookiesPs + Game.mouseCps() * FrozenCookies.cookieClickSpeed;
 
     t_draw = [];
 
@@ -297,46 +279,22 @@ function updateTimers() {
             f_percent: chainCompletion,
             c1: "rgba(51, 51, 51, 1)",
             name: "Chain to: " + decodeHtml(chainPurchase.name),
-            display: timeDisplay(
-                divCps(
-                    Math.max(
-                        chainTotal + bankTotal - Game.cookies - chainFinished,
-                        0
-                    ),
-                    actualCps
-                )
-            ),
+            display: timeDisplay(divCps(Math.max(chainTotal + bankTotal - Game.cookies - chainFinished, 0), actualCps)),
         });
     }
-    if (
-        purchaseTotal > 0 &&
-        nextPurchase().type == "building" &&
-        Game.season == "fools"
-    ) {
+    if (purchaseTotal > 0 && nextPurchase().type == "building" && Game.season == "fools") {
         t_draw.push({
             f_percent: purchaseCompletion,
             c1: "rgba(17, 17, 17, 1)",
-            name:
-                "Next: " +
-                decodeHtml(Game.foolObjects[nextPurchase().purchase.name].name),
-            display: timeDisplay(
-                divCps(
-                    Math.max(purchaseTotal + bankTotal - Game.cookies, 0),
-                    actualCps
-                )
-            ),
+            name: "Next: " + decodeHtml(Game.foolObjects[nextPurchase().purchase.name].name),
+            display: timeDisplay(divCps(Math.max(purchaseTotal + bankTotal - Game.cookies, 0), actualCps)),
         });
     } else {
         t_draw.push({
             f_percent: purchaseCompletion,
             c1: "rgba(17, 17, 17, 1)",
             name: "Next: " + decodeHtml(nextPurchase().purchase.name),
-            display: timeDisplay(
-                divCps(
-                    Math.max(purchaseTotal + bankTotal - Game.cookies, 0),
-                    actualCps
-                )
-            ),
+            display: timeDisplay(divCps(Math.max(purchaseTotal + bankTotal - Game.cookies, 0), actualCps)),
         });
     }
     if (bankMax > 0) {
@@ -345,9 +303,7 @@ function updateTimers() {
                 f_percent: bankPercent,
                 c1: "rgba(252, 212, 0, 1)",
                 name: "Bank Completion",
-                display: timeDisplay(
-                    divCps(Math.max(bankTotal - Game.cookies, 0), actualCps)
-                ),
+                display: timeDisplay(divCps(Math.max(bankTotal - Game.cookies, 0), actualCps)),
                 overlay: true,
             });
         }
@@ -386,10 +342,7 @@ function updateTimers() {
         t_draw.push({
             f_percent: elder_frenzy_delay,
             c1: "rgba(79, 0, 7, 1)",
-            name:
-                "Elder Frenzy (x" +
-                Game.buffs["Elder frenzy"].multCpS +
-                ") Time",
+            name: "Elder Frenzy (x" + Game.buffs["Elder frenzy"].multCpS + ") Time",
             display: timeDisplay(buffDuration("Elder frenzy") / Game.fps),
         });
     }
@@ -405,10 +358,7 @@ function updateTimers() {
         t_draw.push({
             f_percent: dragon_harvest_delay,
             c1: "rgba(206, 180, 49, 1)",
-            name:
-                "Dragon Harvest (x" +
-                Game.buffs["Dragon Harvest"].multCpS +
-                ") Time",
+            name: "Dragon Harvest (x" + Game.buffs["Dragon Harvest"].multCpS + ") Time",
             display: timeDisplay(buffDuration("Dragon Harvest") / Game.fps),
         });
     }
@@ -416,10 +366,7 @@ function updateTimers() {
         t_draw.push({
             f_percent: click_frenzy_delay,
             c1: "rgba(0, 196, 255, 1)",
-            name:
-                "Click Frenzy (x" +
-                Game.buffs["Click frenzy"].multClick +
-                ") Time",
+            name: "Click Frenzy (x" + Game.buffs["Click frenzy"].multClick + ") Time",
             display: timeDisplay(buffDuration("Click frenzy") / Game.fps),
         });
     }
@@ -427,10 +374,7 @@ function updateTimers() {
         t_draw.push({
             f_percent: dragonflight_delay,
             c1: "rgba(183, 206, 49, 1)",
-            name:
-                "Dragonflight (x" +
-                Game.buffs["Dragonflight"].multClick +
-                ") Time",
+            name: "Dragonflight (x" + Game.buffs["Dragonflight"].multClick + ") Time",
             display: timeDisplay(buffDuration("Dragonflight") / Game.fps),
         });
     }

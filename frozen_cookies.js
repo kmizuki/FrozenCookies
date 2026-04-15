@@ -1,15 +1,12 @@
 // Global Variables
 var lastCompatibleVersion = 2.052;
 if (Game.version > lastCompatibleVersion) {
+    console.log("WARNING: The Cookie Clicker version is newer than this version of Frozen Cookies.");
     console.log(
-        "WARNING: The Cookie Clicker version is newer than this version of Frozen Cookies."
+        "This version of Frozen Cookies has only been tested through Cookie Clicker version " + lastCompatibleVersion,
     );
     console.log(
-        "This version of Frozen Cookies has only been tested through Cookie Clicker version " +
-            lastCompatibleVersion
-    );
-    console.log(
-        "There may be incompatibilities, undesirable effects, bugs, shifts in reality, immoral behavior, and who knows what else."
+        "There may be incompatibilities, undesirable effects, bugs, shifts in reality, immoral behavior, and who knows what else.",
     );
 }
 
@@ -89,10 +86,7 @@ function fcInit() {
     var jquery = document.createElement("script");
     jquery.setAttribute("type", "text/javascript");
     jquery.setAttribute("src", "https://code.jquery.com/jquery-3.6.0.min.js");
-    jquery.setAttribute(
-        "integrity",
-        "sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-    );
+    jquery.setAttribute("integrity", "sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=");
     jquery.setAttribute("crossorigin", "anonymous");
     jquery.onload = function () {
         loadScript(0);
