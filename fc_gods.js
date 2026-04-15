@@ -1,3 +1,12 @@
+const PANTHEON_SLOT_DIAMOND = 0;
+const PANTHEON_SLOT_RUBY = 1;
+const PANTHEON_SLOT_JADE = 2;
+const CYCLIUS_GOD_ID = 3;
+const RIGIDEL_GOD_ID = 10;
+const SCORN_GOD_ID = 11;
+const DRAGON_AURA_DRAGONS_CURVE = 17;
+const DRAGON_AURA_REALITY_BENDING = 18;
+
 function swapIn(godId, targetSlot) {
     //mostly code copied from minigamePantheon.js, tweaked to avoid references to "dragging"
     if (!T.swaps) return;
@@ -25,70 +34,107 @@ function swapIn(godId, targetSlot) {
     Game.SparkleAt((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2 - 24);
 }
 
-function autoWorship0Action() {
+function canManagePantheon() {
+    return T && T.swaps > 0;
+}
+
+function getAutoWorshipPreference(slot) {
+    return FrozenCookies["autoWorship" + slot];
+}
+
+function disableAutoWorshipPreference(slot, message) {
+    FrozenCookies["autoWorship" + slot] = 0;
+    logEvent("autoWorship", message);
+}
+
+function autoWorshipAction(slot, conflicts) {
+    var preferredGod = getAutoWorshipPreference(slot);
     if (
-        !T ||
-        T.swaps < 1 ||
+        !canManagePantheon() ||
         !FrozenCookies.autoWorshipToggle ||
-        !FrozenCookies.autoWorship0 ||
+        !preferredGod ||
         FrozenCookies.autoCyclius ||
-        T.slot[0] === FrozenCookies.autoWorship0
+        T.slot[slot] === preferredGod
     ) {
         return;
     }
 
-    if (T.swaps > 0) swapIn(FrozenCookies.autoWorship0, 0);
+    conflicts.forEach(function (conflict) {
+        if (T.slot[conflict.slot] === preferredGod) {
+            disableAutoWorshipPreference(slot, conflict.message);
+            preferredGod = 0;
+        }
+    });
+
+    if (preferredGod) swapIn(preferredGod, slot);
+}
+
+function swapPantheonGodIfNeeded(godId, slot, label) {
+    if (!canManagePantheon() || godId === SCORN_GOD_ID || godId === CYCLIUS_GOD_ID || T.slot[slot] === godId) {
+        return;
+    }
+
+    swapIn(godId, slot);
+    logEvent("autoCyclius", "Set desired god to " + label);
+}
+
+function removeCycliusIfPresent() {
+    if (Game.hasGod("ages")) {
+        Game.forceUnslotGod("ages");
+        logEvent("autoCyclius", "Removing Cyclius");
+    }
+}
+
+function setDragonAuraWithConfirmation(auraId, slot, options) {
+    options = options || {};
+    Game.specialTab = "dragon";
+    Game.SetDragonAura(auraId, slot);
+    Game.ConfirmPrompt();
+    if (options.closeMenu) Game.ToggleSpecialMenu();
+    if (options.logMessage) {
+        logEvent(options.logCategory || "autoDragon", options.logMessage);
+    }
+}
+
+function suspendAutoDragonToggle() {
+    var shouldRestore = FrozenCookies.autoDragonToggle === 1;
+    if (shouldRestore) FrozenCookies.autoDragonToggle = 0;
+    return shouldRestore;
+}
+
+function restoreAutoDragonToggle(shouldRestore) {
+    if (shouldRestore) FrozenCookies.autoDragonToggle = 1;
+}
+
+function autoWorship0Action() {
+    autoWorshipAction(PANTHEON_SLOT_DIAMOND, []);
 }
 
 function autoWorship1Action() {
-    if (
-        !T ||
-        T.swaps < 1 ||
-        !FrozenCookies.autoWorshipToggle ||
-        !FrozenCookies.autoWorship1 ||
-        FrozenCookies.autoCyclius ||
-        T.slot[1] === FrozenCookies.autoWorship1
-    ) {
-        return;
-    }
-
-    if (T.slot[0] === FrozenCookies.autoWorship1) {
-        FrozenCookies.autoworship1 = 0;
-        logEvent("autoWorship", "Can't worship the same god in Diamond and Ruby slots!");
-        return;
-    }
-
-    if (T.swaps > 0) swapIn(FrozenCookies.autoWorship1, 1);
+    autoWorshipAction(PANTHEON_SLOT_RUBY, [
+        {
+            slot: PANTHEON_SLOT_DIAMOND,
+            message: "Can't worship the same god in Diamond and Ruby slots!",
+        },
+    ]);
 }
 
 function autoWorship2Action() {
-    if (
-        !T ||
-        T.swaps < 1 ||
-        !FrozenCookies.autoWorshipToggle ||
-        !FrozenCookies.autoWorship2 ||
-        FrozenCookies.autoCyclius ||
-        T.slot[2] === FrozenCookies.autoWorship2
-    ) {
-        return;
-    }
-
-    if (T.slot[0] === FrozenCookies.autoWorship2) {
-        FrozenCookies.autoworship2 = 0;
-        logEvent("autoWorship", "Can't worship the same god in Diamond and Jade slots!");
-        return;
-    }
-    if (T.slot[1] === FrozenCookies.autoWorship2) {
-        FrozenCookies.autoworship2 = 0;
-        logEvent("autoWorship", "Can't worship the same god in Ruby and Jade slots!");
-        return;
-    }
-
-    if (T.swaps > 0) swapIn(FrozenCookies.autoWorship2, 2);
+    autoWorshipAction(PANTHEON_SLOT_JADE, [
+        {
+            slot: PANTHEON_SLOT_DIAMOND,
+            message: "Can't worship the same god in Diamond and Jade slots!",
+        },
+        {
+            slot: PANTHEON_SLOT_RUBY,
+            message: "Can't worship the same god in Ruby and Jade slots!",
+        },
+    ]);
 }
 
 function autoCycliusAction() {
     if (!T || T.swaps < 1 || !FrozenCookies.autoCyclius) return;
+    const hasSupremeIntellect = Game.hasAura("Supreme Intellect");
 
     // Disable auto-Pantheon if enabled
     if (FrozenCookies.autoWorshipToggle === 1) {
@@ -100,7 +146,7 @@ function autoCycliusAction() {
     // Third slot is not used by Cyclius in this mode
     // autoCyclius == 1 is two-slots mode
     // autoCyclius == 2 is three-slots mode
-    if (FrozenCookies.autoCyclius === 2 && Game.hasAura("Supreme Intellect")) {
+    if (FrozenCookies.autoCyclius === 2 && hasSupremeIntellect) {
         FrozenCookies.autoCyclius = 1;
         logEvent("autoCyclius", "Supreme Intellect detected! Swapping Cyclius to two slot mode");
     }
@@ -108,7 +154,7 @@ function autoCycliusAction() {
     // Time constants (in minutes)
     // See https://cookieclicker.fandom.com/wiki/Pantheon#Cyclius,_Spirit_of_Ages
     // SI ignores Diamond slot since it doesn't matter
-    const times = {
+    const cycliusTimes = {
         Ruby1: 1 * 60 + 12, //1:12 UTC: Ruby
         Jade1: 4 * 60, // 4:00 UTC: Jade
         SIJade: 6 * 60, // 6:00 UTC: SI Ruby-as-Diamond
@@ -129,7 +175,7 @@ function autoCycliusAction() {
 
     // Helper to swap gods if needed
     function swapIfNeeded(godId, slot, label) {
-        if (godId !== 11 && godId !== 3 && T.slot[slot] !== godId && T.swaps > 0) {
+        if (godId !== SCORN_GOD_ID && godId !== CYCLIUS_GOD_ID && T.slot[slot] !== godId && T.swaps > 0) {
             swapIn(godId, slot);
             logEvent("autoCyclius", `set desired god to ${label}`);
         }
@@ -144,14 +190,14 @@ function autoCycliusAction() {
     }
 
     // Main logic for two slots mode - never uses Diamond slot
-    if (FrozenCookies.autoCyclius === 1 && !Game.hasAura("Supreme Intellect")) {
-        if (T.slot[1] !== 3 && currentTime < times.Jade1) {
+    if (FrozenCookies.autoCyclius === 1 && !hasSupremeIntellect) {
+        if (T.slot[1] !== 3 && currentTime < cycliusTimes.Jade1) {
             // 1:12 UTC to 4:00 UTC, RUBY
             swapIn(3, 1);
             logEvent("autoCyclius", "Putting Cyclius in RUBY");
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
-        } else if (T.slot[2] !== 3 && currentTime >= times.Jade1 && currentTime < times.Diamond3) {
+        } else if (T.slot[2] !== 3 && currentTime >= cycliusTimes.Jade1 && currentTime < cycliusTimes.Diamond3) {
             // 4:00 UTC to 12:00 UTC, JADE
             swapIn(3, 2);
             logEvent("autoCyclius", "Putting Cyclius in JADE");
@@ -160,14 +206,14 @@ function autoCycliusAction() {
         } else if (
             // 12:00 UTC to 19:30 UTC, RUBY
             T.slot[1] !== 3 &&
-            currentTime >= times.Diamond3 &&
-            currentTime < times.Diamond4
+            currentTime >= cycliusTimes.Diamond3 &&
+            currentTime < cycliusTimes.Diamond4
         ) {
             swapIn(3, 1);
             logEvent("autoCyclius", "Putting Cyclius in RUBY");
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
-        } else if (currentTime >= times.Diamond4) {
+        } else if (currentTime >= cycliusTimes.Diamond4) {
             // 19:30 UTC to 1:12 UTC, no Cyclius
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -177,8 +223,8 @@ function autoCycliusAction() {
     }
 
     // Main logic for three slots mode)
-    if (FrozenCookies.autoCyclius === 2 && !Game.hasAura("Supreme Intellect")) {
-        if (T.slot[0] !== 3 && currentTime < times.Ruby1) {
+    if (FrozenCookies.autoCyclius === 2 && !hasSupremeIntellect) {
+        if (T.slot[0] !== 3 && currentTime < cycliusTimes.Ruby1) {
             // 1:12 UTC to 4:00 UTC, DIAMOND
             swapIn(3, 0);
             logEvent("autoCyclius", "Putting Cyclius in DIAMOND");
@@ -187,8 +233,8 @@ function autoCycliusAction() {
         } else if (
             // 4:00 UTC to 9:19 UTC, RUBY
             T.slot[1] !== 3 &&
-            currentTime >= times.Ruby1 &&
-            currentTime < times.Jade1
+            currentTime >= cycliusTimes.Ruby1 &&
+            currentTime < cycliusTimes.Jade1
         ) {
             swapIn(3, 1);
             logEvent("autoCyclius", "Putting Cyclius in RUBY");
@@ -197,8 +243,8 @@ function autoCycliusAction() {
         } else if (
             // 9:19 UTC to 10:20 UTC, JADE
             T.slot[2] !== 3 &&
-            currentTime >= times.Jade1 &&
-            currentTime < times.Diamond2
+            currentTime >= cycliusTimes.Jade1 &&
+            currentTime < cycliusTimes.Diamond2
         ) {
             swapIn(3, 2);
             logEvent("autoCyclius", "Putting Cyclius in JADE");
@@ -207,8 +253,8 @@ function autoCycliusAction() {
         } else if (
             // 10:20 UTC to 12:00 UTC, DIAMOND
             T.slot[0] !== 3 &&
-            currentTime >= times.Diamond2 &&
-            currentTime < times.Jade2
+            currentTime >= cycliusTimes.Diamond2 &&
+            currentTime < cycliusTimes.Jade2
         ) {
             swapIn(3, 0);
             logEvent("autoCyclius", "Putting Cyclius in DIAMOND");
@@ -217,8 +263,8 @@ function autoCycliusAction() {
         } else if (
             // 12:00 UTC to 13:12 UTC, RUBY
             T.slot[2] !== 3 &&
-            currentTime >= times.Jade2 &&
-            currentTime < times.Diamond3
+            currentTime >= cycliusTimes.Jade2 &&
+            currentTime < cycliusTimes.Diamond3
         ) {
             swapIn(3, 2);
             logEvent("autoCyclius", "Putting Cyclius in JADE");
@@ -227,8 +273,8 @@ function autoCycliusAction() {
         } else if (
             //  13:12 UTC to 18:00 UTC, DIAMOND
             T.slot[0] !== 3 &&
-            currentTime >= times.Diamond3 &&
-            currentTime < times.Ruby2
+            currentTime >= cycliusTimes.Diamond3 &&
+            currentTime < cycliusTimes.Ruby2
         ) {
             swapIn(3, 0);
             logEvent("autoCyclius", "Putting Cyclius in DIAMOND");
@@ -237,8 +283,8 @@ function autoCycliusAction() {
         } else if (
             // 13:12 UTC to 18:00 UTC, RUBY
             T.slot[1] !== 3 &&
-            currentTime >= times.Ruby2 &&
-            currentTime < times.Diamond4
+            currentTime >= cycliusTimes.Ruby2 &&
+            currentTime < cycliusTimes.Diamond4
         ) {
             swapIn(3, 1);
             logEvent("autoCyclius", "Putting Cyclius in RUBY");
@@ -247,8 +293,8 @@ function autoCycliusAction() {
         } else if (
             // 18:00 UTC to 19:30 UTC, DIAMOND
             T.slot[0] !== 3 &&
-            currentTime >= times.Diamond4 &&
-            currentTime < times.CycNone1
+            currentTime >= cycliusTimes.Diamond4 &&
+            currentTime < cycliusTimes.CycNone1
         ) {
             swapIn(3, 0);
             logEvent("autoCyclius", "Putting Cyclius in DIAMOND");
@@ -256,8 +302,8 @@ function autoCycliusAction() {
             swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
         } else if (
             // 19:30 UTC to 21:00 UTC, no Cyclius
-            currentTime >= times.CycNone1 &&
-            currentTime < times.Diamond5
+            currentTime >= cycliusTimes.CycNone1 &&
+            currentTime < cycliusTimes.Diamond5
         ) {
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -266,14 +312,14 @@ function autoCycliusAction() {
         } else if (
             // 21:00 UTC to 22:30 UTC, DIAMOND
             T.slot[0] !== 3 &&
-            currentTime >= times.Diamond5 &&
-            currentTime < times.CycNone2
+            currentTime >= cycliusTimes.Diamond5 &&
+            currentTime < cycliusTimes.CycNone2
         ) {
             swapIn(3, 0);
             logEvent("autoCyclius", "Putting Cyclius in DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship0, 1, "RUBY");
             swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
-        } else if (currentTime >= times.CycNone2) {
+        } else if (currentTime >= cycliusTimes.CycNone2) {
             // // 22:30 UTC to 1:12 UTC, no Cyclius
             swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
             swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -283,9 +329,9 @@ function autoCycliusAction() {
     }
 
     // Supreme Intellect: Ruby acts as Diamond, Jade as Ruby
-    if (Game.hasAura("Supreme Intellect")) {
+    if (hasSupremeIntellect) {
         if (FrozenCookies.autoCyclius === 1) {
-            if (T.slot[1] !== 3 && currentTime < times.Ruby1) {
+            if (T.slot[1] !== 3 && currentTime < cycliusTimes.Ruby1) {
                 // 1:12 UTC to 4:00 UTC, RUBY
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
@@ -294,8 +340,8 @@ function autoCycliusAction() {
             } else if (
                 // 4:00 UTC to 6:00 UTC, JADE
                 T.slot[2] !== 3 &&
-                currentTime >= times.Ruby1 &&
-                currentTime < times.SIJade
+                currentTime >= cycliusTimes.Ruby1 &&
+                currentTime < cycliusTimes.SIJade
             ) {
                 swapIn(3, 2);
                 logEvent("autoCyclius", "Putting Cyclius in JADE (SI)");
@@ -304,8 +350,8 @@ function autoCycliusAction() {
             } else if (
                 // 6:00 UTC to 7:30 UTC, RUBY
                 T.slot[1] !== 3 &&
-                currentTime >= times.SIJade &&
-                currentTime < times.SIRuby
+                currentTime >= cycliusTimes.SIJade &&
+                currentTime < cycliusTimes.SIRuby
             ) {
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
@@ -313,8 +359,8 @@ function autoCycliusAction() {
                 swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
             } else if (
                 // 7:30 UTC to 12:00 UTC, no Cyclius
-                currentTime >= times.SI730 &&
-                currentTime < times.Diamond2
+                currentTime >= cycliusTimes.SIRuby &&
+                currentTime < cycliusTimes.Diamond2
             ) {
                 swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND (SI)");
                 swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -323,8 +369,8 @@ function autoCycliusAction() {
             } else if (
                 // 12:00 UTC to 13:12 UTC, RUBY
                 T.slot[1] !== 3 &&
-                currentTime >= times.Diamond2 &&
-                currentTime < times.Jade2
+                currentTime >= cycliusTimes.Diamond2 &&
+                currentTime < cycliusTimes.Jade2
             ) {
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
@@ -332,8 +378,8 @@ function autoCycliusAction() {
                 swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
             } else if (
                 // 13:12 UTC to 18:00 UTC, no Cyclius
-                currentTime >= times.Jade2 &&
-                currentTime < times.Diamond3
+                currentTime >= cycliusTimes.Jade2 &&
+                currentTime < cycliusTimes.Diamond3
             ) {
                 swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
                 swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -342,8 +388,8 @@ function autoCycliusAction() {
             } else if (
                 // 18:00 UTC to 19:30 UTC, RUBY
                 T.slot[1] !== 3 &&
-                currentTime >= times.Diamond3 &&
-                currentTime < times.Ruby2
+                currentTime >= cycliusTimes.Diamond3 &&
+                currentTime < cycliusTimes.Ruby2
             ) {
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
@@ -352,8 +398,8 @@ function autoCycliusAction() {
             } else if (
                 // 13:12 UTC to 18:00 UTC, JADE
                 T.slot[2] !== 3 &&
-                currentTime >= times.Ruby2 &&
-                currentTime < times.Diamond4
+                currentTime >= cycliusTimes.Ruby2 &&
+                currentTime < cycliusTimes.Diamond4
             ) {
                 swapIn(3, 2);
                 logEvent("autoCyclius", "Putting Cyclius in JADE (SI)");
@@ -362,8 +408,8 @@ function autoCycliusAction() {
             } else if (
                 // 18:00 UTC to 19:30 UTC, RUBY
                 T.slot[1] !== 3 &&
-                currentTime >= times.Diamond4 &&
-                currentTime < times.CycNone1
+                currentTime >= cycliusTimes.Diamond4 &&
+                currentTime < cycliusTimes.CycNone1
             ) {
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
@@ -371,8 +417,8 @@ function autoCycliusAction() {
                 swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
             } else if (
                 // 19:30 UTC to 21:00 UTC, no Cyclius
-                currentTime >= times.CycNone1 &&
-                currentTime < times.Diamond5
+                currentTime >= cycliusTimes.CycNone1 &&
+                currentTime < cycliusTimes.Diamond5
             ) {
                 swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
                 swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -381,14 +427,14 @@ function autoCycliusAction() {
             } else if (
                 // 21:00 UTC to 22:30 UTC, RUBY
                 T.slot[1] !== 3 &&
-                currentTime >= times.Diamond5 &&
-                currentTime < times.CycNone2
+                currentTime >= cycliusTimes.Diamond5 &&
+                currentTime < cycliusTimes.CycNone2
             ) {
                 swapIn(3, 1);
                 logEvent("autoCyclius", "Putting Cyclius in RUBY (SI)");
                 swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
                 swapIfNeeded(FrozenCookies.autoWorship1, 2, "JADE");
-            } else if (currentTime >= times.CycNone2) {
+            } else if (currentTime >= cycliusTimes.CycNone2) {
                 // // 22:30 UTC to 1:12 UTC, no Cyclius
                 swapIfNeeded(FrozenCookies.autoWorship0, 0, "DIAMOND");
                 swapIfNeeded(FrozenCookies.autoWorship1, 1, "RUBY");
@@ -433,10 +479,10 @@ function autoRigidel() {
     // Determine if Rigidel is in a slot and act accordingly
     if (orderLvl === 0) {
         // Rigidel isn't in a slot
-        if (T.swaps < (T.slot[0] === -1 ? 1 : 2)) return; // Not enough swaps to proceed
+        if (T.swaps < (T.slot[PANTHEON_SLOT_DIAMOND] === -1 ? 1 : 2)) return; // Not enough swaps to proceed
         if (timeToRipe < 60) {
-            prevGod = T.slot[0]; // Cache current god in diamond slot
-            swapIn(10, 0); // Swap in Rigidel to diamond slot
+            prevGod = T.slot[PANTHEON_SLOT_DIAMOND]; // Cache current god in diamond slot
+            swapIn(RIGIDEL_GOD_ID, PANTHEON_SLOT_DIAMOND); // Swap in Rigidel to diamond slot
             tryHarvest = true;
         }
     } else if (orderLvl === 1) {
@@ -468,53 +514,40 @@ function autoRigidel() {
     }
 
     // Restore previous god if we swapped Rigidel in
-    if (prevGod !== -1) swapIn(prevGod, 0);
+    if (prevGod !== -1) swapIn(prevGod, PANTHEON_SLOT_DIAMOND);
 }
 
 function autoDragonsCurve() {
-    //Swap dragon auras to try for unusual lumps
+    // Swap dragon auras to try for unusual lumps.
     if (Game.dragonLevel < 21 || FrozenCookies.dragonsCurve < 1) return;
 
-    if (FrozenCookies.autoDragonToggle === 1) {
-        autoDragonsCurve.autodragonyes = 1;
-        FrozenCookies.autoDragonToggle = 0;
-    } else {
-        autoDragonsCurve.autodragonyes = 0;
-    }
+    var shouldRestoreAutoDragonToggle = suspendAutoDragonToggle();
 
     if (Game.dragonLevel > 26 && !Game.hasAura("Dragon's Curve")) {
-        if (Game.dragonAura === 18) {
-            Game.SetDragonAura(17, 1);
-            Game.ConfirmPrompt();
-        } else {
-            Game.SetDragonAura(17, 0);
-            Game.ConfirmPrompt();
-        }
-        logEvent("autoDragonsCurve", "Dragon auras swapped to manipulate new Sugar Lump");
+        setDragonAuraWithConfirmation(
+            DRAGON_AURA_DRAGONS_CURVE,
+            Game.dragonAura === DRAGON_AURA_REALITY_BENDING ? 1 : 0,
+            {
+                logCategory: "autoDragonsCurve",
+                logMessage: "Dragon auras swapped to manipulate new Sugar Lump",
+            },
+        );
     } else if (!Game.hasAura("Dragon's Curve")) {
-        Game.specialTab = "dragon";
-        Game.SetDragonAura(17, 0);
-        Game.ConfirmPrompt();
-        logEvent("autoDragonsCurve", "Dragon auras swapped to manipulate new Sugar Lump");
+        setDragonAuraWithConfirmation(DRAGON_AURA_DRAGONS_CURVE, 0, {
+            logCategory: "autoDragonsCurve",
+            logMessage: "Dragon auras swapped to manipulate new Sugar Lump",
+        });
     }
 
     if (FrozenCookies.dragonsCurve === 2 && Game.dragonLevel > 26 && !Game.hasAura("Reality Bending")) {
-        if (Game.dragonAura === 17) {
-            Game.SetDragonAura(18, 1);
-            Game.ConfirmPrompt();
-        } else {
-            Game.SetDragonAura(18, 0);
-            Game.ConfirmPrompt();
-        }
+        setDragonAuraWithConfirmation(
+            DRAGON_AURA_REALITY_BENDING,
+            Game.dragonAura === DRAGON_AURA_DRAGONS_CURVE ? 1 : 0,
+        );
     }
 
     Game.clickLump();
-
-    if (autoDragonsCurve.autodragonyes === 1) {
-        FrozenCookies.autoDragonToggle = 1;
-        autoDragonsCurve.autodragonyes = 0;
-    }
-    return;
+    restoreAutoDragonToggle(shouldRestoreAutoDragonToggle);
 }
 
 function autoDragonAction() {
@@ -580,17 +613,15 @@ function autoDragonAura0Action() {
         Game.dragonAura === FrozenCookies.autoDragonAura1 &&
         Game.dragonAura2 !== FrozenCookies.autoDragonAura0
     ) {
-        Game.specialTab = "dragon";
-        Game.SetDragonAura(FrozenCookies.autoDragonAura0, 1);
-        Game.ConfirmPrompt();
-        logEvent("autoDragon", "Set first dragon aura");
+        setDragonAuraWithConfirmation(FrozenCookies.autoDragonAura0, 1, {
+            logMessage: "Set first dragon aura",
+        });
         return;
     } else if (Game.dragonLevel >= FrozenCookies.autoDragonAura0 + 4) {
-        Game.specialTab = "dragon";
-        Game.SetDragonAura(FrozenCookies.autoDragonAura0, 0);
-        Game.ConfirmPrompt();
-        Game.ToggleSpecialMenu();
-        logEvent("autoDragon", "Set first dragon aura");
+        setDragonAuraWithConfirmation(FrozenCookies.autoDragonAura0, 0, {
+            closeMenu: true,
+            logMessage: "Set first dragon aura",
+        });
         return;
     }
 }
@@ -609,44 +640,36 @@ function autoDragonAura1Action() {
     }
 
     if (Game.dragonAura2 === FrozenCookies.autoDragonAura0 && Game.dragonAura !== FrozenCookies.autoDragonAura1) {
-        Game.specialTab = "dragon";
-        Game.SetDragonAura(FrozenCookies.autoDragonAura1, 0);
-        Game.ConfirmPrompt();
-        logEvent("autoDragon", "Set second dragon aura");
+        setDragonAuraWithConfirmation(FrozenCookies.autoDragonAura1, 0, {
+            logMessage: "Set second dragon aura",
+        });
         return;
     } else if (
         Game.dragonAura === FrozenCookies.autoDragonAura0 &&
         Game.dragonAura2 !== FrozenCookies.autoDragonAura1
     ) {
-        Game.specialTab = "dragon";
-        Game.SetDragonAura(FrozenCookies.autoDragonAura1, 1);
-        Game.ConfirmPrompt();
-        Game.ToggleSpecialMenu();
-        logEvent("autoDragon", "Set second dragon aura");
+        setDragonAuraWithConfirmation(FrozenCookies.autoDragonAura1, 1, {
+            closeMenu: true,
+            logMessage: "Set second dragon aura",
+        });
         return;
     }
 }
 
 function autoDragonOrbsAction() {
     if (!T) return;
-    if (
-        FrozenCookies.autoDragonOrbs === 1 &&
-        (!Game.hasAura("Dragon Orbs") || Game.hasGod("ruin") || Game.Objects["You"].amount < 1)
-    ) {
+    var you = Game.Objects["You"];
+    if (FrozenCookies.autoDragonOrbs === 1 && (!Game.hasAura("Dragon Orbs") || Game.hasGod("ruin") || you.amount < 1)) {
         FrozenCookies.autoDragonOrbs = 0;
         logEvent("autoDragonOrbs", "Not currently possible to use Dragon Orbs");
     }
 
-    var buffsN = 0;
-    for (var ii in Game.buffs) {
-        buffsN++;
-    }
-    if (!goldenCookieLife() && Game.hasAura("Dragon Orbs") && !buffsN) {
-        Game.Objects["You"].sell(1);
+    var hasActiveBuffs = Object.keys(Game.buffs).length > 0;
+    if (!goldenCookieLife() && Game.hasAura("Dragon Orbs") && !hasActiveBuffs) {
+        you.sell(1);
         logEvent(
             "autoDragonOrbs",
-            "Sold 1 You for " +
-                (Beautify(Game.Objects["You"].price * Game.Objects["You"].getSellMultiplier()) + " cookies and a wish"),
+            "Sold 1 You for " + (Beautify(you.price * you.getSellMultiplier()) + " cookies and a wish"),
         );
     }
 }
