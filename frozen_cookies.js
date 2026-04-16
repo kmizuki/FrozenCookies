@@ -23,22 +23,40 @@ var FrozenCookies = {
     branch: "erb-",
     version: "2.052.8", // This should match the version in README.md and Steam info.txt
 };
+var externalLibraryVersions = {
+    jquery: "3.7.1",
+    jqueryUi: "1.14.2",
+    underscore: "1.13.8",
+    jcanvas: "23.0.0",
+    jqPlot: "1.0.9",
+};
+var externalLibraryUrls = {
+    jquery: "https://code.jquery.com/jquery-" + externalLibraryVersions.jquery + ".min.js",
+    jqueryUi: "https://code.jquery.com/ui/" + externalLibraryVersions.jqueryUi + "/jquery-ui.min.js",
+    jqueryUiTheme:
+        "https://code.jquery.com/ui/" + externalLibraryVersions.jqueryUi + "/themes/smoothness/jquery-ui.css",
+    underscore:
+        "https://cdn.jsdelivr.net/npm/underscore@" + externalLibraryVersions.underscore + "/underscore-umd-min.js",
+    jcanvas:
+        "https://cdnjs.cloudflare.com/ajax/libs/jcanvas/" + externalLibraryVersions.jcanvas + "/umd/jcanvas.min.js",
+    jqPlot: "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/" + externalLibraryVersions.jqPlot + "/",
+};
 
 // Load external libraries and FC scripts in order
 var script_list = [
-    "https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js",
-    "https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jcanvas/20.1.1/min/jcanvas.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/jquery.jqplot.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/jquery.jqplot.min.css",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.canvasTextRenderer.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.canvasAxisLabelRenderer.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.canvasAxisTickRenderer.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.trendline.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.highlighter.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.logAxisRenderer.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/jqPlot/1.0.9/plugins/jqplot.cursor.min.js",
+    externalLibraryUrls.jqueryUi,
+    externalLibraryUrls.jqueryUiTheme,
+    externalLibraryUrls.underscore,
+    externalLibraryUrls.jcanvas,
+    externalLibraryUrls.jqPlot + "jquery.jqplot.min.js",
+    externalLibraryUrls.jqPlot + "jquery.jqplot.min.css",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.canvasTextRenderer.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.canvasAxisLabelRenderer.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.canvasAxisTickRenderer.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.trendline.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.highlighter.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.logAxisRenderer.min.js",
+    externalLibraryUrls.jqPlot + "plugins/jqplot.cursor.min.js",
     FrozenCookies.baseUrl + "/fc_preferences.js", // preferences must be loaded before the rest of the scripts
     FrozenCookies.baseUrl + "/cc_upgrade_prerequisites.js", // upgrade prerequisites, used in fc_main.js
     FrozenCookies.baseUrl + "/fc_main.js", // main logic
@@ -85,9 +103,8 @@ function loadScript(id) {
 function fcInit() {
     var jquery = document.createElement("script");
     jquery.setAttribute("type", "text/javascript");
-    jquery.setAttribute("src", "https://code.jquery.com/jquery-3.6.0.min.js");
-    jquery.setAttribute("integrity", "sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=");
-    jquery.setAttribute("crossorigin", "anonymous");
+    // jqPlot is still unmaintained, so we stay on the latest jQuery 3.x line for compatibility.
+    jquery.setAttribute("src", externalLibraryUrls.jquery);
     jquery.onload = function () {
         loadScript(0);
     };

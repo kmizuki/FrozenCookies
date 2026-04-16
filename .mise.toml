@@ -12,3 +12,15 @@ run = "bun run format"
 
 [tasks.lint]
 run = "bun run lint"
+
+[tasks.steam-serve]
+run = "bun run steam:serve"
+
+[tasks.steam-local]
+run = "bun run steam:use:local"
+
+[tasks.steam-prod]
+run = "bun run steam:use:prod"
+
+[tasks.steam-status]
+run = "bun run steam:loader:status"
