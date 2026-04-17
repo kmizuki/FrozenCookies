@@ -2114,13 +2114,14 @@ function buildingStats(recalculate) {
                 var baseCpsOrig = baseCps();
                 var cpsOrig = effectiveCps(bankedCookies);
                 var existingAchievements = achievementStates();
+                var previousHighest = Game.cookiesPsRawHighest;
                 FrozenCookies.caches.buildings = Game.ObjectsById.map(function (current) {
                     if (buildingBlacklistLookup.has(current.id)) return null;
                     var cost = current.getPrice();
                     buildingToggle(current);
                     var baseCpsNew = baseCps();
                     var cpsNew = effectiveCps(currentBank);
-                    buildingToggle(current, existingAchievements);
+                    buildingToggle(current, existingAchievements, true);
                     var deltaCps = cpsNew - cpsOrig;
                     var baseDeltaCps = baseCpsNew - baseCpsOrig;
                     var efficiency = purchaseEfficiency(cost, deltaCps, baseDeltaCps, cpsOrig);
@@ -2136,6 +2137,9 @@ function buildingStats(recalculate) {
                 }).filter(function (a) {
                     return a;
                 });
+                if (FrozenCookies.caches.buildings.length) {
+                    finalizeSimulation(previousHighest);
+                }
             }
         }
         return FrozenCookies.caches.buildings;
@@ -2159,6 +2163,7 @@ function upgradeStats(recalculate) {
                 var existingAchievements = achievementStates();
                 var existingWrath = Game.elderWrath;
                 var discounts = totalDiscount() + totalDiscount(true);
+                var previousHighest = Game.cookiesPsRawHighest;
                 FrozenCookies.caches.upgrades = Object.values(Game.UpgradesById)
                     .map(function (current) {
                         if (!current.bought) {
@@ -2169,7 +2174,7 @@ function upgradeStats(recalculate) {
                             var cpsNew = effectiveCps(currentBank);
                             var priceReduction =
                                 discounts === totalDiscount() + totalDiscount(true) ? 0 : checkPrices(current);
-                            upgradeToggle(current, existingAchievements, reverseFunctions);
+                            upgradeToggle(current, existingAchievements, reverseFunctions, true);
                             Game.elderWrath = existingWrath;
                             var deltaCps = cpsNew - cpsOrig;
                             var baseDeltaCps = baseCpsNew - baseCpsOrig;
@@ -2196,6 +2201,9 @@ function upgradeStats(recalculate) {
                     .filter(function (a) {
                         return a;
                     });
+                if (FrozenCookies.caches.upgrades.length) {
+                    finalizeSimulation(previousHighest);
+                }
             }
         }
         return FrozenCookies.caches.upgrades;
@@ -2390,6 +2398,25 @@ function upgradePrereqCost(upgrade, full) {
     return cost;
 }
 
+function restoreAchievementStates(achievements) {
+    Game.AchievementsOwned = 0;
+    achievements.forEach(function (won, index) {
+        var achievement = Game.AchievementsById[index];
+        achievement.won = won;
+        if (won && achievement.pool !== "shadow") {
+            Game.AchievementsOwned += 1;
+        }
+    });
+}
+
+function finalizeSimulation(oldHighest, skipCalculation) {
+    Game.recalculateGains = 1;
+    if (!skipCalculation) {
+        runCalculationInSandbox();
+        Game.cookiesPsRawHighest = oldHighest;
+    }
+}
+
 function unfinishedUpgradePrereqs(upgrade) {
     if (upgrade.unlocked) return null;
     var needed = [];
@@ -2443,8 +2470,8 @@ function unfinishedUpgradePrereqs(upgrade) {
     return needed.length ? needed : null;
 }
 
-function upgradeToggle(upgrade, achievements, reverseFunctions) {
-    const oldHighest = Game.cookiesPsRawHighest; // Save current value before simulating
+function upgradeToggle(upgrade, achievements, reverseFunctions, skipCalculation) {
+    var oldHighest = Game.cookiesPsRawHighest;
     if (!achievements) {
         reverseFunctions = {};
         if (!upgrade.unlocked) {
@@ -2471,7 +2498,7 @@ function upgradeToggle(upgrade, achievements, reverseFunctions) {
                         if (!upgrade.bought) {
                             reverseFunctions.prereqUpgrades.push({
                                 id: id,
-                                reverseFunctions: upgradeToggle(upgrade),
+                                reverseFunctions: upgradeToggle(upgrade, null, null, true),
                             });
                         }
                     });
@@ -2493,29 +2520,20 @@ function upgradeToggle(upgrade, achievements, reverseFunctions) {
         if (reverseFunctions.prereqUpgrades) {
             reverseFunctions.prereqUpgrades.forEach(function (u) {
                 var upgrade = Game.UpgradesById[u.id];
-                upgradeToggle(upgrade, [], u.reverseFunctions);
+                upgradeToggle(upgrade, [], u.reverseFunctions, true);
             });
         }
         upgrade.bought = 0;
         Game.UpgradesOwned -= 1;
         buyFunctionToggle(reverseFunctions.current);
-        Game.AchievementsOwned = 0;
-        achievements.forEach(function (won, index) {
-            var achievement = Game.AchievementsById[index];
-            achievement.won = won;
-            if (won && achievement.pool !== "shadow") {
-                Game.AchievementsOwned += 1;
-            }
-        });
+        restoreAchievementStates(achievements);
     }
-    Game.recalculateGains = 1;
-    runCalculationInSandbox();
-    Game.cookiesPsRawHighest = oldHighest; // Restore after simulation
+    finalizeSimulation(oldHighest, skipCalculation);
     return reverseFunctions;
 }
 
-function buildingToggle(building, achievements) {
-    const oldHighest = Game.cookiesPsRawHighest; // Save current value before simulating
+function buildingToggle(building, achievements, skipCalculation) {
+    var oldHighest = Game.cookiesPsRawHighest;
     if (!achievements) {
         building.amount += 1;
         building.bought += 1;
@@ -2524,16 +2542,9 @@ function buildingToggle(building, achievements) {
         building.amount -= 1;
         building.bought -= 1;
         Game.BuildingsOwned -= 1;
-        Game.AchievementsOwned = 0;
-        achievements.forEach(function (won, index) {
-            var achievement = Game.AchievementsById[index];
-            achievement.won = won;
-            if (won && achievement.pool !== "shadow") Game.AchievementsOwned += 1;
-        });
+        restoreAchievementStates(achievements);
     }
-    Game.recalculateGains = 1;
-    runCalculationInSandbox();
-    Game.cookiesPsRawHighest = oldHighest; // Restore after simulation
+    finalizeSimulation(oldHighest, skipCalculation);
 }
 
 function runCalculationInSandbox() {
@@ -2794,7 +2805,7 @@ function updateCaches() {
             upgrades: needsUpgradeRefresh,
         };
         var recommendation = nextPurchase(refreshPlan.recommendation ? refreshPlan : false);
-        var chainedRecommendation = nextChainedPurchase();
+        var chainedRecommendation = normalizeRecommendation(FrozenCookies.caches.nextChainedPurchase);
         var currentBank = bestBank(0);
         var targetBank = bestBank(chainedRecommendation.efficiency);
 
@@ -2814,7 +2825,11 @@ function updateCaches() {
         FrozenCookies.delayBank = targetBank.cost;
         FrozenCookies.lastCookieCPS = gcPs(cookieValue(currentBank.cost));
 
-        return recommendation;
+        return {
+            recommendation: recommendation,
+            chainedRecommendation: chainedRecommendation,
+            delay: targetBank.cost,
+        };
     } finally {
         profilerEnd(profilerToken);
     }
@@ -3125,14 +3140,16 @@ function autoBuyAction() {
         if (!FrozenCookies.frequency || Game.OnAscend || Game.AscendTimer) return;
         if (!FrozenCookies.autoBuy) return;
 
-        var recommendation = updateCaches();
+        var cacheState = updateCaches();
+        var recommendation = cacheState.recommendation;
+        var chainedRecommendation = cacheState.chainedRecommendation;
         var purchase = recommendation.purchase;
         var purchaseCost = recommendation.type === "building" ? purchase.getPrice() : recommendation.cost;
-        var delay = delayAmount();
+        var delay = cacheState.delay;
         if (!(Game.cookies >= delay + purchaseCost || purchase.name === "Elder Pledge")) {
             return;
         }
-        if (!(FrozenCookies.pastemode || Number.isFinite(nextChainedPurchase().efficiency))) {
+        if (!(FrozenCookies.pastemode || Number.isFinite(chainedRecommendation.efficiency))) {
             return;
         }
 
