@@ -40,6 +40,11 @@ FrozenCookies.preferenceValues = {
         display: ["AutoBuy OFF", "AutoBuy ON"],
         default: 0,
     },
+    sortStore: {
+        hint: "Sort store items by Frozen Cookies value.",
+        display: ["Value Sort OFF", "Value Sort ON"],
+        default: 0,
+    },
     otherUpgrades: {
         hint: "Buy upgrades that don't boost CpS directly.",
         display: ["Other Upgrades OFF", "Other Upgrades ON"],
@@ -494,6 +499,11 @@ FrozenCookies.preferenceValues = {
         hint: "Log all auto-purchases.",
         display: ["Purchase Log OFF", "Purchase Log ON"],
         default: 0,
+    },
+    performanceLogging: {
+        hint: "Show a performance summary in-game and log to console every 5 seconds.",
+        display: ["Performance Log OFF", "Performance Log ON"],
+        default: 1,
     },
 
     slowOptions: {

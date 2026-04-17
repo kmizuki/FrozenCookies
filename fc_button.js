@@ -7,7 +7,7 @@ $("#logButton").before(
         .addClass("button panelButton")
         .html("Frozen<br />Cookies")
         .click(function () {
-            Game.ShowMenu("fc_menu");
+            openProfilerPanel();
         }),
 );
 
@@ -18,11 +18,9 @@ $("<style>")
     .text(
         "#fcEfficiencyTable {width: 100%;}" +
             "#fcButton {top: 0px; right: 0px; padding-top: 12px; font-size: 90%; background-position: -100px 0px;}" +
-            ".worst {border-width:1px; border-style:solid; border-color:#330000;}" +
-            ".bad {border-width:1px; border-style:solid; border-color:#660033;}" +
-            ".average {border-width:1px; border-style:solid; border-color:#663399;}" +
-            ".good {border-width:1px; border-style:solid; border-color:#3399FF;}" +
-            ".best {border-width:1px; border-style:solid; border-color:#00FFFF;}" +
+            ".fc-value-annotation {display:block; margin-top:2px; font-size:11px; font-weight:bold; line-height:1.1; pointer-events:none; text-shadow:0 1px 2px #000;}" +
+            ".crate.upgrade .fc-value-annotation {position:absolute; left:0; right:0; bottom:0; margin-top:0; font-size:10px; text-align:center;}" +
+            ".fc-value-cell {font-weight:bold;}" +
             ".ui-dialog {z-index:1000000;}",
     )
     .appendTo("head");
@@ -119,88 +117,296 @@ function colorizeScore(score) {
     return result;
 }
 
-function rebuildStore(recalculate) {
-    var store = $("#products"),
-        recommendations = recommendationList(recalculate);
+function shouldRefreshValueDisplay(recalculate) {
+    return !!(
+        recalculate ||
+        FrozenCookies.recalculateCaches ||
+        FrozenCookies.recalculateBuildings ||
+        FrozenCookies.recalculateUpgrades
+    );
+}
 
-    store[0].innerHTML = "";
-    Game.ObjectsById.forEach(function (me) {
-        var purchaseRec = recommendations.filter(function (a) {
-                return a.id === me.id && a.type === "building";
-            })[0],
-            button = $("<div>")
-                .addClass("product")
-                .addClass(colorizeScore(purchaseRec.efficiencyScore))
-                .mouseenter(function () {
-                    Game.tooltip.draw(this, escape(getBuildingTooltip(purchaseRec)), 0, 0, "left");
-                })
-                .mouseleave(function () {
-                    Game.tooltip.hide();
-                })
-                .click(function () {
-                    Game.ObjectsById[me.id].buy();
-                })
-                .prop("id", "product" + me.id)
-                .append(
-                    $("<div>")
-                        .addClass("icon")
-                        .prop("style", "background-image:url(img/" + me.icon + ".png);"),
-                );
-        content = $("<div>").addClass("content");
+function formatEfficiencyScore(score, decimalPlaces) {
+    var safeScore = Number.isFinite(score) ? Math.max(0, Math.min(1, score)) : 0;
+    var safeDecimalPlaces = Number.isFinite(decimalPlaces) ? Math.max(0, decimalPlaces) : 1;
+    var scale = Math.pow(10, safeDecimalPlaces);
+    return (Math.floor(safeScore * 100 * scale) / scale).toString() + "%";
+}
 
-        content.append($("<div>").addClass("title").html(me.displayName));
-        content.append($("<div>").addClass("price").text(Beautify(me.price)));
-        if (me.amount) {
-            content.append($("<div>").addClass("title owned").text(Beautify(me.amount)));
+function buildRecommendationLookup(recommendations) {
+    return recommendations.reduce(function (lookup, recommendation) {
+        lookup[recommendation.type + ":" + recommendation.id] = recommendation;
+        return lookup;
+    }, {});
+}
+
+function clearRecommendationDisplay(target, annotation) {
+    target.removeClass("fc-valued best good average bad worst");
+    annotation.remove();
+}
+
+function applyRecommendationDisplay(target, annotation, purchaseRec) {
+    var scoreClass = colorizeScore(purchaseRec.efficiencyScore);
+    target.removeClass("best good average bad worst").addClass("fc-valued").addClass(scoreClass);
+    annotation
+        .text(formatEfficiencyScore(purchaseRec.efficiencyScore, 1))
+        .css("color", purchaseRec.efficiencyColor || "");
+}
+
+function buildInfoBox(text) {
+    return $("<div>")
+        .css({
+            width: "100%",
+            minHeight: "90px",
+            background: "#111",
+            color: "#f5f5f5",
+            border: "1px solid #444",
+            borderRadius: "4px",
+            padding: "8px",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            lineHeight: "1.4",
+            whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
+            boxSizing: "border-box",
+        })
+        .text(text);
+}
+
+function buildRecommendationOrderLookup(recommendations) {
+    return recommendations.reduce(function (lookup, recommendation, index) {
+        lookup[recommendation.type + ":" + recommendation.id] = index;
+        return lookup;
+    }, {});
+}
+
+function sortStoreNodes(container, entries) {
+    if (!container.length) {
+        return;
+    }
+
+    entries
+        .sort(function (left, right) {
+            var leftOrder = FrozenCookies.sortStore ? left.rank : left.originalIndex;
+            var rightOrder = FrozenCookies.sortStore ? right.rank : right.originalIndex;
+            return leftOrder !== rightOrder ? leftOrder - rightOrder : left.originalIndex - right.originalIndex;
+        })
+        .forEach(function (entry) {
+            container.append(entry.node);
+        });
+}
+
+function getUpgradeSortContainerId(upgrade) {
+    if (!upgrade) {
+        return "upgrades";
+    }
+    if (upgrade.pool === "toggle") {
+        return "toggleUpgrades";
+    }
+    if (upgrade.pool === "tech") {
+        return "techUpgrades";
+    }
+    return "upgrades";
+}
+
+function shouldValueSortUpgrade(upgrade) {
+    return !!(upgrade && upgrade.pool !== "toggle");
+}
+
+function bindMenuAction(element, handler) {
+    var lastTriggeredAt = 0;
+    var configuredEvent = typeof Game.clickStr === "string" ? Game.clickStr.replace(/^on/, "") : "click";
+
+    function invoke(event) {
+        var now = Date.now();
+        if (now - lastTriggeredAt < 250) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            return false;
         }
-        button.append(content);
-        store.append(button);
+
+        lastTriggeredAt = now;
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        handler.call(this, event);
+        return false;
+    }
+
+    element
+        .addClass("option")
+        .attr("role", "button")
+        .attr("href", "javascript:void(0);")
+        .on("click.fcMenuAction", invoke)
+        .on("pointerup.fcMenuAction", invoke);
+
+    if (configuredEvent && configuredEvent !== "click" && configuredEvent !== "pointerup") {
+        element.on(configuredEvent + ".fcMenuAction", invoke);
+    }
+
+    return element;
+}
+
+function buildMenuButton(label, handler) {
+    return bindMenuAction($("<a>").addClass("fc-multichoice-btn").text(label), handler);
+}
+
+function setChoiceButtonState(button, isSelected) {
+    return button
+        .toggleClass("selected", isSelected)
+        .toggleClass("off", !isSelected)
+        .attr("aria-pressed", isSelected ? "true" : "false");
+}
+
+function refreshFrozenCookiesUi() {
+    Game.RefreshStore();
+    Game.RebuildUpgrades();
+    if (Game.onMenu === "fc_menu" && typeof Game.UpdateMenu === "function") {
+        Game.UpdateMenu();
+    }
+}
+
+function rebuildStore(recalculate) {
+    var recommendations = recommendationList(shouldRefreshValueDisplay(recalculate));
+    var recommendationLookup = buildRecommendationLookup(recommendations);
+    var recommendationOrder = buildRecommendationOrderLookup(recommendations);
+    var store = $("#products");
+    var orderedButtons = [];
+
+    Game.ObjectsById.forEach(function (me, originalIndex) {
+        var purchaseRec = recommendationLookup["building:" + me.id];
+        var button = $("#product" + me.id);
+        var price = $("#productPrice" + me.id);
+        var annotation = $("#productAcc" + me.id);
+
+        if (!button.length || !price.length) {
+            return;
+        }
+
+        if (!purchaseRec) {
+            clearRecommendationDisplay(button, annotation);
+            orderedButtons.push({
+                node: button,
+                originalIndex: originalIndex,
+                rank: recommendations.length + originalIndex,
+            });
+            return;
+        }
+
+        if (!annotation.length) {
+            annotation = $("<span>")
+                .attr("id", "productAcc" + me.id)
+                .addClass("fc-value-annotation");
+            price.after(annotation);
+        }
+
+        applyRecommendationDisplay(button, annotation, purchaseRec);
+        orderedButtons.push({
+            node: button,
+            originalIndex: originalIndex,
+            rank:
+                recommendationOrder["building:" + me.id] != null
+                    ? recommendationOrder["building:" + me.id]
+                    : recommendations.length + originalIndex,
+        });
     });
-    //  Game.Draw();
+
+    sortStoreNodes(store, orderedButtons);
 }
 
 function rebuildUpgrades(recalculate) {
-    var store = $("#upgrades"),
-        recommendations = recommendationList(recalculate);
-    store[0].innerHTML = "";
-    Game.UpgradesInStore = Game.UpgradesById.filter(function (a) {
-        return !a.bought && a.unlocked;
-    }).sort(function (a, b) {
-        return a.getPrice() - b.getPrice();
-    });
-    Game.UpgradesInStore.forEach(function (me) {
-        var purchaseRec = recommendations.filter(function (a) {
-            return a.id === me.id && a.type === "upgrade";
-        })[0];
-        if (!purchaseRec) {
-            console.log(me.name + " not found in recommendationList()");
-        } else {
-            store.append(
-                $("<div>")
-                    .addClass("crate upgrade")
-                    .addClass(colorizeScore(purchaseRec.efficiencyScore))
-                    .mouseenter(function () {
-                        Game.tooltip.draw(this, escape(getUpgradeTooltip(purchaseRec)), 0, 16, "bottom-right");
-                    })
-                    .mouseleave(function () {
-                        Game.tooltip.hide();
-                    })
-                    .click(function () {
-                        Game.UpgradesById[me.id].buy();
-                    })
-                    .prop("id", "upgrade" + me.id)
-                    .prop(
-                        "style",
-                        "background-position:" + (-me.icon[0] * 48 + 6) + "px " + (-me.icon[1] * 48 + 6) + "px;",
-                    ),
-            );
+    var recommendations = recommendationList(shouldRefreshValueDisplay(recalculate));
+    var recommendationLookup = buildRecommendationLookup(recommendations);
+    var recommendationOrder = buildRecommendationOrderLookup(recommendations);
+    var orderedButtonsByContainer = {};
+
+    Game.UpgradesInStore.forEach(function (me, storeIndex) {
+        var purchaseRec = recommendationLookup["upgrade:" + me.id];
+        var button = $("#upgrade" + storeIndex);
+        var annotation = $("#upgradeAcc" + me.id);
+        var containerId = getUpgradeSortContainerId(me);
+        var shouldSortThisUpgrade = shouldValueSortUpgrade(me);
+        if (!orderedButtonsByContainer[containerId]) {
+            orderedButtonsByContainer[containerId] = [];
         }
+        var orderedButtons = orderedButtonsByContainer[containerId];
+
+        if (!button.length) {
+            return;
+        }
+
+        if (!shouldSortThisUpgrade || !purchaseRec) {
+            clearRecommendationDisplay(button, annotation);
+            orderedButtons.push({
+                node: button,
+                originalIndex: storeIndex,
+                rank: recommendations.length + storeIndex,
+            });
+            return;
+        }
+
+        if (!annotation.length) {
+            annotation = $("<span>")
+                .attr("id", "upgradeAcc" + me.id)
+                .addClass("fc-value-annotation");
+            button.css("position", "relative").append(annotation);
+        }
+
+        applyRecommendationDisplay(button, annotation, purchaseRec);
+        orderedButtons.push({
+            node: button,
+            originalIndex: storeIndex,
+            rank:
+                recommendationOrder["upgrade:" + me.id] != null
+                    ? recommendationOrder["upgrade:" + me.id]
+                    : recommendations.length + storeIndex,
+        });
     });
-    //  Game.Draw();
+
+    Object.keys(orderedButtonsByContainer).forEach(function (containerId) {
+        sortStoreNodes($("#" + containerId), orderedButtonsByContainer[containerId]);
+    });
 }
 
-if (typeof Game.oldUpdateMenu !== "function") {
-    Game.oldUpdateMenu = Game.UpdateMenu;
+function installValueColorHooks() {
+    if (FrozenCookies.valueColorHooksInstalled) {
+        return;
+    }
+
+    FrozenCookies.valueColorHooksInstalled = true;
+    FrozenCookies.originalRefreshStore = Game.RefreshStore;
+    Game.RefreshStore = function () {
+        var result = FrozenCookies.originalRefreshStore.apply(Game, arguments);
+        rebuildStore(arguments[0]);
+        return result;
+    };
+
+    FrozenCookies.originalRebuildUpgrades = Game.RebuildUpgrades;
+    Game.RebuildUpgrades = function () {
+        var result = FrozenCookies.originalRebuildUpgrades.apply(Game, arguments);
+        rebuildUpgrades(arguments[0]);
+        return result;
+    };
+}
+
+installValueColorHooks();
+rebuildStore(true);
+rebuildUpgrades(true);
+
+function resolveBaseUpdateMenu() {
+    if (typeof FrozenCookies.originalUpdateMenu === "function") {
+        return FrozenCookies.originalUpdateMenu;
+    }
+    if (typeof Game.oldUpdateMenu === "function" && !Game.oldUpdateMenu.fcMenuHookInstalled) {
+        return Game.oldUpdateMenu;
+    }
+    if (typeof Game.UpdateMenu === "function" && !Game.UpdateMenu.fcMenuHookInstalled) {
+        return Game.UpdateMenu;
+    }
+    return null;
 }
 
 // Add custom styles
@@ -213,30 +419,46 @@ if (typeof Game.oldUpdateMenu !== "function") {
             gap: 4px;
             margin: 4px 0;
         }
-        .fc-multichoice-btn,
-        .option {
-            background: #111;
-            color: #fff;
-            border: 1px solid #444;
+        .fc-multichoice-btn {
+            display: block;
+            box-sizing: border-box;
+            background: rgba(34, 24, 16, 0.9) !important;
+            color: #d9c7a2 !important;
+            border: 1px solid #5a4630 !important;
             border-radius: 4px;
             padding: 4px 10px;
             margin: 0;
             cursor: pointer;
             font-size: 1em;
             text-align: left;
+            text-decoration: none;
+            user-select: none;
             transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-            opacity: 0.7; /* Default: greyed out */
-            filter: grayscale(30%);
+            opacity: 0.78;
+            filter: grayscale(20%);
+        }
+        .fc-multichoice-btn.off {
+            opacity: 0.55;
+            filter: grayscale(55%);
+            border-color: #433526 !important;
+            box-shadow: none !important;
         }
         .fc-multichoice-group-vertical .selected,
-        .option.selected {
-            background: #222;
-            color: #fff;
+        .fc-multichoice-btn.selected {
+            background: linear-gradient(180deg, rgba(135, 92, 32, 0.96), rgba(88, 52, 16, 0.96)) !important;
+            color: #fff7d6 !important;
             font-weight: bold;
             opacity: 1;
             filter: none;
-            /* Add shiny effect */
-            box-shadow: 0 0 8px 2px #fff, 0 0 2px 1px #fff inset; /* Keep shiny effect, but neutral color */
+            border-color: #f0d18a !important;
+            text-shadow: 0 0 6px rgba(255, 235, 170, 0.35);
+            box-shadow:
+                0 0 0 1px rgba(255, 233, 170, 0.28),
+                0 0 12px rgba(255, 214, 120, 0.28),
+                inset 0 0 0 1px rgba(255, 250, 235, 0.18);
+        }
+        .fc-multichoice-btn.selected::before {
+            content: "✓ ";
         }
         .fc-multichoice-group-2col {
             display: grid;
@@ -250,13 +472,17 @@ if (typeof Game.oldUpdateMenu !== "function") {
             gap: 4px;
             margin: 4px 0;
         }
-        .fc-multichoice-btn:hover,
-        .option:hover {
-            background: #222;
-            color: #fff;
+        .fc-multichoice-btn:hover {
+            background: rgba(76, 52, 24, 0.95) !important;
+            color: #fff2c9 !important;
             opacity: 1;
             filter: none;
-            box-shadow: 0 0 8px 2px #fff, 0 0 2px 1px #cfc inset;
+            box-shadow:
+                0 0 10px rgba(255, 214, 120, 0.24),
+                inset 0 0 0 1px rgba(255, 250, 235, 0.14);
+        }
+        .fc-multichoice-btn.selected:hover {
+            background: linear-gradient(180deg, rgba(145, 100, 36, 0.98), rgba(96, 58, 18, 0.98)) !important;
         }
         .fc-section-heading {
             font-variant: small-caps;
@@ -287,16 +513,32 @@ if (typeof Game.oldUpdateMenu !== "function") {
 })();
 
 function FCMenu() {
+    var baseUpdateMenu = resolveBaseUpdateMenu();
+    if (typeof baseUpdateMenu !== "function") {
+        FrozenCookies.menuHookInstalled = false;
+        return;
+    }
+    if (Game.UpdateMenu && Game.UpdateMenu.fcMenuHookInstalled && FrozenCookies.menuHookInstalled) {
+        return;
+    }
+
+    FrozenCookies.originalUpdateMenu = baseUpdateMenu;
+    Game.oldUpdateMenu = baseUpdateMenu;
+    FrozenCookies.menuHookInstalled = true;
     Game.UpdateMenu = function () {
         if (Game.onMenu !== "fc_menu") {
-            return Game.oldUpdateMenu();
+            return baseUpdateMenu.apply(Game, arguments);
         }
+        FrozenCookies.lastMenuRenderAt = Date.now();
         if (!Game.callingMenu) {
             Game.callingMenu = true;
-            setTimeout(() => {
-                Game.callingMenu = false;
-                Game.UpdateMenu();
-            }, 1000);
+            setTimeout(
+                () => {
+                    Game.callingMenu = false;
+                    Game.UpdateMenu();
+                },
+                FrozenCookies.fullMenuView ? 5000 : 1000,
+            );
         }
         var currentCookies,
             maxCookies,
@@ -321,16 +563,50 @@ function FCMenu() {
                         .addClass("section")
                         .text("Frozen Cookies v " + FrozenCookies.branch + "." + FrozenCookies.version),
                 )
+                .append(
+                    $("<div>")
+                        .addClass("listing")
+                        .append(
+                            buildMenuButton("Performance Profiler", openProfilerPanel)
+                                .attr("id", "fcOpenProfilerPanel")
+                                .attr("title", "Open the latest Frozen Cookies performance profiler sample"),
+                        ),
+                )
+                .append(
+                    $("<div>")
+                        .addClass("listing")
+                        .append(
+                            $("<b>").text("Profiler Status:"),
+                            " ",
+                            FrozenCookies.performanceLogging ? "ON" : "OFF",
+                            FrozenCookies.performanceLogging && !FrozenCookies.lastProfilerReportLines
+                                ? " (waiting for first 5 second sample)"
+                                : "",
+                        ),
+                )
+                .append(
+                    $("<div>")
+                        .addClass("listing")
+                        .append(
+                            buildMenuButton(
+                                FrozenCookies.fullMenuView ? "Back To Profiler View" : "Open Full Menu",
+                                toggleFullMenuView,
+                            )
+                                .attr("id", "fcToggleMenuMode")
+                                .attr(
+                                    "title",
+                                    "Toggle between the lightweight profiler view and the full Frozen Cookies menu",
+                                ),
+                        ),
+                )
                 // Add the log/info panel button
                 .append(
                     $("<div>")
                         .addClass("listing")
                         .append(
-                            $("<button>")
+                            buildMenuButton("Cookie Clicker Info", openGameLogPanel)
                                 .attr("id", "fcOpenLogPanel")
-                                .attr("title", "Open the Cookie Clicker about/version info panel")
-                                .text("Cookie Clicker Info")
-                                .click(openGameLogPanel),
+                                .attr("title", "Open the Cookie Clicker about/version info panel"),
                         ),
                 )
                 // Add a documentations page button
@@ -338,29 +614,48 @@ function FCMenu() {
                     $("<div>")
                         .addClass("listing")
                         .append(
-                            $("<button>")
+                            buildMenuButton("Frozen Cookies Readme", openDocumentationPage)
                                 .attr("id", "fcOpenDocPage")
-                                .attr("title", "Open the Frozen Cookies readme/documentation page")
-                                .text("Frozen Cookies Readme")
-                                .click(openDocumentationPage),
+                                .attr("title", "Open the Frozen Cookies readme/documentation page"),
                         ),
                 );
 
-        // --- AUTOBUY INFO SECTION ---
-        (subsection = $("<div>")
-            .addClass("subsection")
-            .append($("<div>").addClass("title").text("Autobuy Information"))),
-            (recommendation = nextPurchase()),
-            (chainRecommendation = nextChainedPurchase()),
-            (isChained = !(
-                recommendation.id === chainRecommendation.id && recommendation.type === chainRecommendation.type
-            )),
-            (currentFrenzy = cpsBonus() * clickBuffBonus()),
-            (bankLevel = bestBank(chainRecommendation.efficiency)),
-            (actualCps = Game.cookiesPs + Game.mouseCps() * FrozenCookies.cookieClickSpeed * FrozenCookies.autoClick),
-            (chocolateRecoup =
-                (recommendation.type === "upgrade" ? recommendation.cost : recommendation.cost * 0.425) /
-                (recommendation.delta_cps * 21));
+        subsection = $("<div>").addClass("subsection");
+        subsection.append($("<div>").addClass("title").text("Performance Information"));
+        subsection.append(
+            $("<div>")
+                .addClass("listing")
+                .text("This lightweight view avoids the expensive Frozen Cookies menu sections."),
+        );
+        subsection.append(
+            $("<div>")
+                .addClass("listing")
+                .append(buildInfoBox(getDiagnosticsReportLines().join("\n"))),
+        );
+        subsection.append(
+            $("<div>")
+                .addClass("listing")
+                .append(
+                    buildMenuButton("Copy Profiler Text", function () {
+                        copyToClipboard(getDiagnosticsReportLines().join("\n"));
+                    }),
+                ),
+        );
+        menu.append(subsection);
+
+        if (!FrozenCookies.fullMenuView) {
+            menu.append(
+                $("<div>")
+                    .addClass("subsection")
+                    .append($("<div>").addClass("title").text("Frozen Cookies Menu"))
+                    .append(
+                        $("<div>")
+                            .addClass("listing")
+                            .text("Click 'Open Full Menu' above only when you need the full UI."),
+                    ),
+            );
+            return;
+        }
 
         function buildListing(label, name) {
             return $("<div>")
@@ -368,439 +663,493 @@ function FCMenu() {
                 .append($("<b>").text(label + ":"), " ", name);
         }
 
-        subsection.append(buildListing("Next Purchase", recommendation.purchase.name));
-        if (isChained) {
-            subsection.append(buildListing("Building Chain to", chainRecommendation.purchase.name));
-        }
-        subsection.append(
-            buildListing(
-                "Time til completion",
-                timeDisplay(divCps(recommendation.cost + bankLevel.cost - Game.cookies, actualCps)),
-            ),
-        );
-        if (isChained) {
-            subsection.append(
-                buildListing(
-                    "Time til Chain completion",
-                    timeDisplay(
-                        divCps(Math.max(0, chainRecommendation.cost + bankLevel.cost - Game.cookies), actualCps),
-                    ),
-                ),
-            );
-        }
-        if (Game.HasUnlocked("Chocolate egg") && !Game.Has("Chocolate egg")) {
-            subsection.append(
-                buildListing(
-                    "Time to Recoup Chocolate",
-                    timeDisplay(
-                        divCps(recommendation.cost + bankLevel.cost - Game.cookies, effectiveCps()) + chocolateRecoup,
-                    ),
-                ),
-            );
-        }
-        subsection.append(buildListing("Cost", Beautify(recommendation.cost)));
-        subsection.append(buildListing("Golden Cookie Bank", Beautify(bankLevel.cost)));
-        subsection.append(buildListing("Base Δ CPS", Beautify(recommendation.base_delta_cps)));
-        subsection.append(buildListing("Full Δ CPS", Beautify(recommendation.delta_cps)));
-        subsection.append(buildListing("Purchase Efficiency", Beautify(recommendation.efficiency)));
-        if (isChained) {
-            subsection.append(buildListing("Chain Efficiency", Beautify(chainRecommendation.efficiency)));
-        }
-        if (bankLevel.efficiency > 0) {
-            subsection.append(buildListing("Golden Cookie Efficiency", Beautify(bankLevel.efficiency)));
-        }
-        menu.append(subsection);
-
-        // --- OPTIONS SECTION ---
-        if (FrozenCookies.preferenceValues) {
+        try {
+            // --- AUTOBUY INFO SECTION ---
             subsection = $("<div>").addClass("subsection");
+            subsection.append($("<div>").addClass("title").text("Autobuy Information"));
+            var recommendation = nextPurchase(),
+                chainRecommendation = nextChainedPurchase(),
+                isChained = !(
+                    recommendation.id === chainRecommendation.id && recommendation.type === chainRecommendation.type
+                ),
+                currentFrenzy = cpsBonus() * clickBuffBonus(),
+                bankLevel = bestBank(chainRecommendation.efficiency),
+                actualCps = Game.cookiesPs + Game.mouseCps() * FrozenCookies.cookieClickSpeed * FrozenCookies.autoClick,
+                chocolateRecoup =
+                    (recommendation.type === "upgrade" ? recommendation.cost : recommendation.cost * 0.425) /
+                    Math.max(recommendation.delta_cps * 21, 1);
+
+            subsection.append(buildListing("Next Purchase", recommendation.purchase.name));
+            if (isChained) {
+                subsection.append(buildListing("Building Chain to", chainRecommendation.purchase.name));
+            }
             subsection.append(
-                $("<div>").addClass("title").text("Frozen Cookie Controls"),
-                // Add warning below the title
-                $("<div>").addClass("fc-warning").text(" ⚠️ All options take effect immediately."),
+                buildListing(
+                    "Time til completion",
+                    timeDisplay(divCps(recommendation.cost + bankLevel.cost - Game.cookies, actualCps)),
+                ),
             );
-            _.keys(FrozenCookies.preferenceValues).forEach(function (preference) {
-                var listing,
-                    prefVal = FrozenCookies.preferenceValues[preference],
-                    hint = prefVal.hint,
-                    display = prefVal.display,
-                    extras = prefVal.extras,
-                    current = FrozenCookies[preference],
-                    preferenceButtonId = preference + "Button";
-                if (display && display.length > 0 && display.length > current) {
-                    listing = $("<div>").addClass("listing");
-                    // Show hint as a subsection head before the button(s)
-                    if (hint) {
-                        listing.append(
-                            $("<label>")
-                                .addClass("fc-hint-label")
-                                .text(
+            if (isChained) {
+                subsection.append(
+                    buildListing(
+                        "Time til Chain completion",
+                        timeDisplay(
+                            divCps(Math.max(0, chainRecommendation.cost + bankLevel.cost - Game.cookies), actualCps),
+                        ),
+                    ),
+                );
+            }
+            if (Game.HasUnlocked("Chocolate egg") && !Game.Has("Chocolate egg")) {
+                subsection.append(
+                    buildListing(
+                        "Time to Recoup Chocolate",
+                        timeDisplay(
+                            divCps(recommendation.cost + bankLevel.cost - Game.cookies, effectiveCps()) +
+                                chocolateRecoup,
+                        ),
+                    ),
+                );
+            }
+            subsection.append(buildListing("Cost", Beautify(recommendation.cost)));
+            subsection.append(buildListing("Golden Cookie Bank", Beautify(bankLevel.cost)));
+            subsection.append(buildListing("Base Δ CPS", Beautify(recommendation.base_delta_cps)));
+            subsection.append(buildListing("Full Δ CPS", Beautify(recommendation.delta_cps)));
+            subsection.append(buildListing("Purchase Efficiency", Beautify(recommendation.efficiency)));
+            if (isChained) {
+                subsection.append(buildListing("Chain Efficiency", Beautify(chainRecommendation.efficiency)));
+            }
+            if (bankLevel.efficiency > 0) {
+                subsection.append(buildListing("Golden Cookie Efficiency", Beautify(bankLevel.efficiency)));
+            }
+            menu.append(subsection);
+
+            // --- OPTIONS SECTION ---
+            if (FrozenCookies.preferenceValues) {
+                subsection = $("<div>").addClass("subsection");
+                subsection.append(
+                    $("<div>").addClass("title").text("Frozen Cookie Controls"),
+                    // Add warning below the title
+                    $("<div>").addClass("fc-warning").text(" ⚠️ All options take effect immediately."),
+                );
+                _.keys(FrozenCookies.preferenceValues).forEach(function (preference) {
+                    var listing,
+                        prefVal = FrozenCookies.preferenceValues[preference],
+                        hint = prefVal.hint,
+                        display = prefVal.display,
+                        extras = prefVal.extras,
+                        current = FrozenCookies[preference],
+                        preferenceButtonId = preference + "Button";
+                    if (display && display.length > 0 && display.length > current) {
+                        listing = $("<div>").addClass("listing");
+                        // Show hint as a subsection head before the button(s)
+                        if (hint) {
+                            listing.append(
+                                $("<label>")
+                                    .addClass("fc-hint-label")
+                                    .text(
+                                        hint.replace(/\$\{(.+)\}/g, function (s, id) {
+                                            return FrozenCookies[id];
+                                        }),
+                                    ),
+                            );
+                        }
+                        if (display.length === 2) {
+                            // Render on/off option buttons side by side
+                            var buttonGroup = $("<div>").addClass("fc-multichoice-group-2col");
+                            display.forEach(function (label, idx) {
+                                buttonGroup.append(
+                                    setChoiceButtonState(
+                                        buildMenuButton(label, function () {
+                                            setPreferenceDirect(preference, idx);
+                                        }).prop("id", preferenceButtonId + "_" + idx),
+                                        idx === current,
+                                    ),
+                                );
+                            });
+                            listing.append(buttonGroup);
+                        } else {
+                            // Add "choose one" label automatically
+                            listing.append($("<div>").addClass("fc-choose-one-label").text("Choose one:"));
+                            // Determine column class based on number of options
+                            let groupClass = "fc-multichoice-group-vertical";
+                            if (display.length > 8) {
+                                groupClass = "fc-multichoice-group-3col";
+                            } else if (display.length > 4) {
+                                groupClass = "fc-multichoice-group-2col";
+                            }
+                            // Render a group of buttons for direct selection, stacked or in columns
+                            var multiChoiceGroup = $("<div>").addClass(groupClass);
+                            display.forEach(function (label, idx) {
+                                multiChoiceGroup.append(
+                                    setChoiceButtonState(
+                                        buildMenuButton(label, function () {
+                                            setPreferenceDirect(preference, idx);
+                                        }).prop("id", preferenceButtonId + "_" + idx),
+                                        idx === current,
+                                    ),
+                                );
+                            });
+                            listing.append(multiChoiceGroup);
+                        }
+                        if (extras) {
+                            // If extras is a function, call it with FrozenCookies, else treat as string
+                            var extrasHtml =
+                                typeof extras === "function"
+                                    ? extras(FrozenCookies)
+                                    : extras.replace(/\$\{(.+)\}/g, function (s, id) {
+                                          return fcBeautify(FrozenCookies[id]);
+                                      });
+                            listing.append($(extrasHtml));
+                        }
+                        subsection.append(listing);
+                    }
+                    // if no options, still display the hint as a subsection head
+                    if (!display) {
+                        listing = $("<div>").addClass("fc-section-heading");
+                        if (hint) {
+                            listing.append(
+                                $("<br>"),
+                                $("<label>").text(
                                     hint.replace(/\$\{(.+)\}/g, function (s, id) {
                                         return FrozenCookies[id];
                                     }),
                                 ),
-                        );
-                    }
-                    if (display.length === 2) {
-                        // Render on/off option buttons side by side
-                        var buttonGroup = $("<div>").addClass("fc-multichoice-group-2col");
-                        display.forEach(function (label, idx) {
-                            buttonGroup.append(
-                                $("<button>")
-                                    .addClass("option fc-multichoice-btn")
-                                    .toggleClass("selected", idx === current)
-                                    .prop("id", preferenceButtonId + "_" + idx)
-                                    .click(function () {
-                                        setPreferenceDirect(preference, idx);
-                                    })
-                                    .text(label),
                             );
-                        });
-                        listing.append(buttonGroup);
-                    } else {
-                        // Add "choose one" label automatically
-                        listing.append($("<div>").addClass("fc-choose-one-label").text("Choose one:"));
-                        // Determine column class based on number of options
-                        let groupClass = "fc-multichoice-group-vertical";
-                        if (display.length > 8) {
-                            groupClass = "fc-multichoice-group-3col";
-                        } else if (display.length > 4) {
-                            groupClass = "fc-multichoice-group-2col";
                         }
-                        // Render a group of buttons for direct selection, stacked or in columns
-                        var multiChoiceGroup = $("<div>").addClass(groupClass);
-                        display.forEach(function (label, idx) {
-                            multiChoiceGroup.append(
-                                $("<button>")
-                                    .addClass("option fc-multichoice-btn")
-                                    .toggleClass("selected", idx === current)
-                                    .prop("id", preferenceButtonId + "_" + idx)
-                                    .click(function () {
-                                        setPreferenceDirect(preference, idx);
-                                    })
-                                    .text(label),
-                            );
-                        });
-                        listing.append(multiChoiceGroup);
+                        subsection.append(listing);
                     }
-                    if (extras) {
-                        // If extras is a function, call it with FrozenCookies, else treat as string
-                        var extrasHtml =
-                            typeof extras === "function"
-                                ? extras(FrozenCookies)
-                                : extras.replace(/\$\{(.+)\}/g, function (s, id) {
-                                      return fcBeautify(FrozenCookies[id]);
-                                  });
-                        listing.append($(extrasHtml));
-                    }
-                    subsection.append(listing);
-                }
-                // if no options, still display the hint as a subsection head
-                if (!display) {
-                    listing = $("<div>").addClass("fc-section-heading");
-                    if (hint) {
-                        listing.append(
-                            $("<br>"),
-                            $("<label>").text(
-                                hint.replace(/\$\{(.+)\}/g, function (s, id) {
-                                    return FrozenCookies[id];
-                                }),
+                });
+                menu.append(subsection);
+            }
+
+            // --- GOLDEN COOKIE INFO SECTION ---
+            subsection = $("<div>").addClass("subsection");
+            subsection.append($("<div>").addClass("title").text("Golden Cookie Information"));
+            currentCookies = Math.min(Game.cookies, FrozenCookies.targetBank.cost);
+            maxCookies = bestBank(Number.POSITIVE_INFINITY).cost;
+            isTarget = FrozenCookies.targetBank.cost === FrozenCookies.currentBank.cost;
+            isMax = currentCookies === maxCookies;
+            targetTxt = isTarget ? "" : " (Building Bank)";
+            maxTxt = isMax ? " (Max)" : "";
+            subsection.append(buildListing("Current Frenzy", Beautify(currentFrenzy)));
+            subsection.append(
+                buildListing(
+                    "Current Average Cookie Value" + targetTxt + maxTxt,
+                    Beautify(cookieValue(currentCookies)),
+                ),
+            );
+            if (!isTarget) {
+                subsection.append(
+                    buildListing("Target Average Cookie Value", Beautify(cookieValue(FrozenCookies.targetBank.cost))),
+                );
+            }
+            if (!isMax) {
+                subsection.append(buildListing("Max Average Cookie Value", Beautify(cookieValue(maxCookies))));
+            }
+            subsection.append(buildListing("Max Lucky Cookie Value", Beautify(maxLuckyValue())));
+            subsection.append(buildListing("Cookie Bank Required for Max Lucky", Beautify(maxLuckyValue() * 10)));
+            subsection.append(
+                buildListing(
+                    "Max Chain Cookie Value",
+                    Beautify(calculateChainValue(chainBank(), Game.cookiesPs, 7 - Game.elderWrath / 3)),
+                ),
+            );
+            subsection.append(buildListing("Cookie Bank Required for Max Chain", Beautify(chainBank())));
+            subsection.append(buildListing("Estimated Cookie CPS", Beautify(gcPs(cookieValue(currentCookies)))));
+            subsection.append(buildListing("Golden Cookie Clicks", Beautify(Game.goldenClicks)));
+            if (FrozenCookies.showMissedCookies === 1) {
+                subsection.append(buildListing("Missed Golden Cookie Clicks", Beautify(Game.missedGoldenClicks)));
+            }
+            subsection.append(buildListing("Last Golden Cookie Effect", Game.shimmerTypes.golden.last));
+            menu.append(subsection);
+
+            // --- FRENZY TIMES SECTION ---
+            subsection = $("<div>").addClass("subsection");
+            subsection.append($("<div>").addClass("title").text("Frenzy Times"));
+            $.each(
+                Object.keys(FrozenCookies.frenzyTimes)
+                    .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
+                    .reduce((result, rate) => {
+                        result[parseInt(rate, 10)] =
+                            (result[parseInt(rate, 10)] || 0) + FrozenCookies.frenzyTimes[rate];
+                        return result;
+                    }, {}),
+                (rate, time) => {
+                    subsection.append(
+                        buildListing("Total Recorded Time at x" + Beautify(rate), timeDisplay(time / 1000)),
+                    );
+                },
+            );
+            menu.append(subsection);
+
+            // --- HEAVENLY CHIPS INFO SECTION ---
+            subsection = $("<div>").addClass("subsection");
+            subsection.append($("<div>").addClass("title").text("Heavenly Chips Information"));
+            currHC = Game.heavenlyChips;
+            resetHC = Game.HowMuchPrestige(Game.cookiesReset + Game.cookiesEarned + wrinklerValue() + chocolateValue());
+
+            // Show timing if it's been more than a minute since the last HC was gained
+            var showTiming = Date.now() - FrozenCookies.lastHCTime > 1000 * 60;
+            subsection.append(buildListing("HC Now", Beautify(Game.heavenlyChips)));
+            subsection.append(buildListing("HC After Reset", Beautify(resetHC)));
+            if (showTiming) {
+                subsection.append(buildListing("Estimated time to next HC", nextHC()));
+            }
+            if (currHC < resetHC) {
+                if (showTiming) {
+                    subsection.append(
+                        buildListing("Time since last HC", timeDisplay((Date.now() - FrozenCookies.lastHCTime) / 1000)),
+                    );
+                    if (FrozenCookies.lastHCAmount - 1 >= currHC) {
+                        subsection.append(
+                            buildListing(
+                                "Time to get last HC",
+                                timeDisplay((FrozenCookies.lastHCTime - FrozenCookies.prevLastHCTime) / 1000),
                             ),
                         );
                     }
-                    subsection.append(listing);
                 }
-            });
-            menu.append(subsection);
-        }
-
-        // --- GOLDEN COOKIE INFO SECTION ---
-        subsection = $("<div>").addClass("subsection");
-        subsection.append($("<div>").addClass("title").text("Golden Cookie Information"));
-        currentCookies = Math.min(Game.cookies, FrozenCookies.targetBank.cost);
-        maxCookies = bestBank(Number.POSITIVE_INFINITY).cost;
-        isTarget = FrozenCookies.targetBank.cost === FrozenCookies.currentBank.cost;
-        isMax = currentCookies === maxCookies;
-        targetTxt = isTarget ? "" : " (Building Bank)";
-        maxTxt = isMax ? " (Max)" : "";
-        subsection.append(buildListing("Current Frenzy", Beautify(currentFrenzy)));
-        subsection.append(
-            buildListing("Current Average Cookie Value" + targetTxt + maxTxt, Beautify(cookieValue(currentCookies))),
-        );
-        if (!isTarget) {
-            subsection.append(
-                buildListing("Target Average Cookie Value", Beautify(cookieValue(FrozenCookies.targetBank.cost))),
-            );
-        }
-        if (!isMax) {
-            subsection.append(buildListing("Max Average Cookie Value", Beautify(cookieValue(maxCookies))));
-        }
-        subsection.append(buildListing("Max Lucky Cookie Value", Beautify(maxLuckyValue())));
-        subsection.append(buildListing("Cookie Bank Required for Max Lucky", Beautify(maxLuckyValue() * 10)));
-        subsection.append(
-            buildListing(
-                "Max Chain Cookie Value",
-                Beautify(calculateChainValue(chainBank(), Game.cookiesPs, 7 - Game.elderWrath / 3)),
-            ),
-        );
-        subsection.append(buildListing("Cookie Bank Required for Max Chain", Beautify(chainBank())));
-        subsection.append(buildListing("Estimated Cookie CPS", Beautify(gcPs(cookieValue(currentCookies)))));
-        subsection.append(buildListing("Golden Cookie Clicks", Beautify(Game.goldenClicks)));
-        if (FrozenCookies.showMissedCookies === 1) {
-            subsection.append(buildListing("Missed Golden Cookie Clicks", Beautify(Game.missedGoldenClicks)));
-        }
-        subsection.append(buildListing("Last Golden Cookie Effect", Game.shimmerTypes.golden.last));
-        menu.append(subsection);
-
-        // --- FRENZY TIMES SECTION ---
-        subsection = $("<div>").addClass("subsection");
-        subsection.append($("<div>").addClass("title").text("Frenzy Times"));
-        $.each(
-            Object.keys(FrozenCookies.frenzyTimes)
-                .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
-                .reduce((result, rate) => {
-                    result[parseInt(rate, 10)] = (result[parseInt(rate, 10)] || 0) + FrozenCookies.frenzyTimes[rate];
-                    return result;
-                }, {}),
-            (rate, time) => {
-                subsection.append(buildListing("Total Recorded Time at x" + Beautify(rate), timeDisplay(time / 1000)));
-            },
-        );
-        menu.append(subsection);
-
-        // --- HEAVENLY CHIPS INFO SECTION ---
-        subsection = $("<div>").addClass("subsection");
-        subsection.append($("<div>").addClass("title").text("Heavenly Chips Information"));
-        currHC = Game.heavenlyChips;
-        resetHC = Game.HowMuchPrestige(Game.cookiesReset + Game.cookiesEarned + wrinklerValue() + chocolateValue());
-
-        // Show timing if it's been more than a minute since the last HC was gained
-        var showTiming = Date.now() - FrozenCookies.lastHCTime > 1000 * 60;
-        subsection.append(buildListing("HC Now", Beautify(Game.heavenlyChips)));
-        subsection.append(buildListing("HC After Reset", Beautify(resetHC)));
-        if (showTiming) {
-            subsection.append(buildListing("Estimated time to next HC", nextHC()));
-        }
-        if (currHC < resetHC) {
-            if (showTiming) {
+                if (FrozenCookies.maxHCPercent > 0) {
+                    subsection.append(buildListing("Max HC Gain/hr", Beautify(FrozenCookies.maxHCPercent)));
+                }
                 subsection.append(
-                    buildListing("Time since last HC", timeDisplay((Date.now() - FrozenCookies.lastHCTime) / 1000)),
+                    buildListing(
+                        "Average HC Gain/hr",
+                        Beautify(
+                            (60 * 60 * (FrozenCookies.lastHCAmount - currHC)) /
+                                ((FrozenCookies.lastHCTime - Game.startDate) / 1000),
+                        ),
+                    ),
                 );
-                if (FrozenCookies.lastHCAmount - 1 >= currHC) {
+                if (showTiming && FrozenCookies.lastHCAmount - 1 >= currHC) {
                     subsection.append(
                         buildListing(
-                            "Time to get last HC",
-                            timeDisplay((FrozenCookies.lastHCTime - FrozenCookies.prevLastHCTime) / 1000),
+                            "Previous Average HC Gain/hr",
+                            Beautify(
+                                (60 * 60 * (FrozenCookies.lastHCAmount - 1 - currHC)) /
+                                    ((FrozenCookies.prevLastHCTime - Game.startDate) / 1000),
+                            ),
                         ),
                     );
                 }
             }
-            if (FrozenCookies.maxHCPercent > 0) {
-                subsection.append(buildListing("Max HC Gain/hr", Beautify(FrozenCookies.maxHCPercent)));
-            }
-            subsection.append(
-                buildListing(
-                    "Average HC Gain/hr",
-                    Beautify(
-                        (60 * 60 * (FrozenCookies.lastHCAmount - currHC)) /
-                            ((FrozenCookies.lastHCTime - Game.startDate) / 1000),
-                    ),
-                ),
-            );
-            if (showTiming && FrozenCookies.lastHCAmount - 1 >= currHC) {
+            menu.append(subsection);
+
+            // --- HARVESTING (BANK) INFO SECTION ---
+            if (FrozenCookies.setHarvestBankPlant) {
+                subsection = $("<div>").addClass("subsection");
+                subsection.append($("<div>").addClass("title").text("Harvesting Information"));
+                subsection.append(buildListing("Base CPS", Beautify(baseCps())));
+                subsection.append(buildListing("Plant to harvest", FrozenCookies.harvestPlant));
+                subsection.append(buildListing("Minutes of CpS", FrozenCookies.harvestMinutes + " min"));
+                subsection.append(buildListing("Max percent of Bank", FrozenCookies.harvestMaxPercent * 100 + " %"));
                 subsection.append(
                     buildListing(
-                        "Previous Average HC Gain/hr",
+                        "Single " +
+                            FrozenCookies.harvestPlant +
+                            (FrozenCookies.setHarvestBankPlant < 6 ? " harvesting" : " exploding") +
+                            "",
                         Beautify(
-                            (60 * 60 * (FrozenCookies.lastHCAmount - 1 - currHC)) /
-                                ((FrozenCookies.prevLastHCTime - Game.startDate) / 1000),
+                            (baseCps() *
+                                60 *
+                                FrozenCookies.harvestMinutes *
+                                FrozenCookies.harvestFrenzy *
+                                FrozenCookies.harvestBuilding) /
+                                Math.pow(10, FrozenCookies.maxSpecials),
                         ),
                     ),
                 );
+                subsection.append(
+                    buildListing(
+                        "Full garden " +
+                            (FrozenCookies.setHarvestBankPlant < 6 ? " harvesting" : " exploding") +
+                            " (36 plots)",
+                        Beautify(
+                            (36 *
+                                baseCps() *
+                                60 *
+                                FrozenCookies.harvestMinutes *
+                                FrozenCookies.harvestFrenzy *
+                                FrozenCookies.harvestBuilding) /
+                                Math.pow(10, FrozenCookies.maxSpecials),
+                        ),
+                    ),
+                );
+                menu.append(subsection);
             }
-        }
-        menu.append(subsection);
 
-        // --- HARVESTING (BANK) INFO SECTION ---
-        if (FrozenCookies.setHarvestBankPlant) {
+            // --- OTHER INFO SECTION ---
             subsection = $("<div>").addClass("subsection");
-            subsection.append($("<div>").addClass("title").text("Harvesting Information"));
-            subsection.append(buildListing("Base CPS", Beautify(baseCps())));
-            subsection.append(buildListing("Plant to harvest", FrozenCookies.harvestPlant));
-            subsection.append(buildListing("Minutes of CpS", FrozenCookies.harvestMinutes + " min"));
-            subsection.append(buildListing("Max percent of Bank", FrozenCookies.harvestMaxPercent * 100 + " %"));
-            subsection.append(
-                buildListing(
-                    "Single " +
-                        FrozenCookies.harvestPlant +
-                        (FrozenCookies.setHarvestBankPlant < 6 ? " harvesting" : " exploding") +
-                        "",
-                    Beautify(
-                        (baseCps() *
-                            60 *
-                            FrozenCookies.harvestMinutes *
-                            FrozenCookies.harvestFrenzy *
-                            FrozenCookies.harvestBuilding) /
-                            Math.pow(10, FrozenCookies.maxSpecials),
-                    ),
-                ),
-            );
-            subsection.append(
-                buildListing(
-                    "Full garden " +
-                        (FrozenCookies.setHarvestBankPlant < 6 ? " harvesting" : " exploding") +
-                        " (36 plots)",
-                    Beautify(
-                        (36 *
-                            baseCps() *
-                            60 *
-                            FrozenCookies.harvestMinutes *
-                            FrozenCookies.harvestFrenzy *
-                            FrozenCookies.harvestBuilding) /
-                            Math.pow(10, FrozenCookies.maxSpecials),
-                    ),
-                ),
-            );
-            menu.append(subsection);
-        }
-
-        // --- OTHER INFO SECTION ---
-        subsection = $("<div>").addClass("subsection");
-        subsection.append($("<div>").addClass("title").html("Other Information"));
-        cps = baseCps() + baseClickingCps(FrozenCookies.cookieClickSpeed * FrozenCookies.autoClick);
-        baseChosen = Game.hasBuff("Frenzy") ? "" : " (*)";
-        frenzyChosen = Game.hasBuff("Frenzy") ? " (*)" : "";
-        clickStr = FrozenCookies.autoClick ? " + Autoclick" : "";
-        subsection.append(buildListing("Base CPS" + clickStr + baseChosen + "", Beautify(cps)));
-        subsection.append(buildListing("Frenzy CPS" + clickStr + frenzyChosen + "", Beautify(cps * 7)));
-        subsection.append(buildListing("Estimated Effective CPS", Beautify(effectiveCps())));
-        if (Game.HasUnlocked("Chocolate egg") && !Game.Has("Chocolate egg")) {
-            subsection.append(buildListing("Chocolate Egg Value", Beautify(chocolateValue())));
-            if (!Game.hasAura("Earth Shatterer")) {
-                subsection.append(buildListing("+ Earth Shatterer", Beautify(chocolateValue(null, true))));
+            subsection.append($("<div>").addClass("title").html("Other Information"));
+            cps = baseCps() + baseClickingCps(FrozenCookies.cookieClickSpeed * FrozenCookies.autoClick);
+            baseChosen = Game.hasBuff("Frenzy") ? "" : " (*)";
+            frenzyChosen = Game.hasBuff("Frenzy") ? " (*)" : "";
+            clickStr = FrozenCookies.autoClick ? " + Autoclick" : "";
+            subsection.append(buildListing("Base CPS" + clickStr + baseChosen + "", Beautify(cps)));
+            subsection.append(buildListing("Frenzy CPS" + clickStr + frenzyChosen + "", Beautify(cps * 7)));
+            subsection.append(buildListing("Estimated Effective CPS", Beautify(effectiveCps())));
+            if (Game.HasUnlocked("Chocolate egg") && !Game.Has("Chocolate egg")) {
+                subsection.append(buildListing("Chocolate Egg Value", Beautify(chocolateValue())));
+                if (!Game.hasAura("Earth Shatterer")) {
+                    subsection.append(buildListing("+ Earth Shatterer", Beautify(chocolateValue(null, true))));
+                }
             }
+            if (liveWrinklers().length > 0) {
+                subsection.append(buildListing("Wrinkler Value", Beautify(wrinklerValue())));
+            }
+            subsection.append(buildListing("Game Seed", Game.seed));
+            menu.append(subsection);
+
+            // --- INTERNAL INFO SECTION ---
+            subsection = $("<div>").addClass("subsection");
+            subsection.append($("<div>").addClass("title").text("Internal Information"));
+            buildTable = $("<table>")
+                .prop("id", "fcEfficiencyTable")
+                .append(
+                    $("<tr>").append(
+                        $("<th>").text("Building"),
+                        $("<th>").text("Eff%"),
+                        $("<th>").text("Efficiency"),
+                        $("<th>").text("Cost"),
+                        $("<th>").text("Δ CPS"),
+                    ),
+                );
+            recommendationList().forEach(function (rec) {
+                var item = rec.purchase,
+                    chainStr = item.unlocked === 0 ? " (C)" : "",
+                    efficiencyCell = $("<td>")
+                        .addClass("fc-value-cell")
+                        .text(formatEfficiencyScore(rec.efficiencyScore, 2));
+                if (rec.efficiencyColor) {
+                    efficiencyCell.css("color", rec.efficiencyColor);
+                }
+                buildTable.append(
+                    $("<tr>").append(
+                        $("<td>").append($("<b>").text(item.name + chainStr)),
+                        efficiencyCell,
+                        $("<td>").text(Beautify(rec.efficiency)),
+                        $("<td>").text(Beautify(rec.cost)),
+                        $("<td>").text(Beautify(rec.delta_cps)),
+                    ),
+                );
+            });
+
+            // Table Dividers
+            var dividers = [
+                $("<tr>").append($("<td>").attr("colspan", "5").html("&nbsp;")),
+                $("<tr>").css("border-top", "2px dashed #999").append($("<td>").attr("colspan", "5").html("&nbsp;")),
+            ];
+
+            var banks = [
+                {
+                    name: "Lucky Bank",
+                    cost: luckyBank(),
+                    efficiency: cookieEfficiency(Game.cookies, luckyBank()),
+                },
+                {
+                    name: "Lucky Frenzy Bank",
+                    cost: luckyFrenzyBank(),
+                    efficiency: cookieEfficiency(Game.cookies, luckyFrenzyBank()),
+                },
+                {
+                    name: "Chain Bank",
+                    cost: chainBank(),
+                    efficiency: cookieEfficiency(Game.cookies, chainBank()),
+                },
+            ];
+
+            var elderWrathLevels = [
+                {
+                    name: "Pledging/Appeased",
+                    level: 0,
+                },
+                {
+                    name: "One Mind/Awoken",
+                    level: 1,
+                },
+                {
+                    name: "Displeased",
+                    level: 2,
+                },
+                {
+                    name: "Full Wrath/Angered",
+                    level: 3,
+                },
+            ];
+            buildTable.append(dividers);
+            banks.forEach(function (bank) {
+                var deltaCps = effectiveCps(bank.cost) - effectiveCps();
+                buildTable.append(
+                    $("<tr>").append(
+                        $("<td>")
+                            .attr("colspan", "2")
+                            .append($("<b>").text(bank.name + (bank.deltaCps === 0 ? " (*)" : ""))),
+                        $("<td>").text(Beautify(bank.efficiency)),
+                        $("<td>").text(Beautify(Math.max(0, bank.cost - Game.cookies))),
+                        $("<td>").text(Beautify(deltaCps)),
+                    ),
+                );
+            });
+
+            buildTable.append(dividers);
+            elderWrathLevels.forEach(function (wrath) {
+                buildTable.append(
+                    $("<tr>").append(
+                        $("<td>")
+                            .attr("colspan", "2")
+                            .append($("<b>").text(wrath.name + (Game.elderWrath === wrath.level ? " (*)" : ""))),
+                        $("<td>")
+                            .attr("colspan", "2")
+                            .attr("title", "Ratio of Effective CPS vs Base CPS")
+                            .text(Beautify(effectiveCps(Game.cookies, wrath.level) / baseCps())),
+                        $("<td>").text(Beautify(effectiveCps(Game.cookies, wrath.level) - effectiveCps())),
+                    ),
+                );
+            });
+            subsection.append($("<div>").addClass("listing").append(buildTable));
+            menu.append(subsection);
+
+            if (!Game.HasAchiev("Olden days"))
+                subsection.append(
+                    $(
+                        '<div id="oldenDays" style="text-align:right;width:100%;"><div ' +
+                            Game.clickStr +
+                            "=\"Game.SparkleAt(Game.mouseX,Game.mouseY);PlaySound('snd/tick.mp3');PlaySound('snd/shimmerClick.mp3');Game.Win('Olden days');Game.UpdateMenu();\" class=\"icon\" style=\"display:inline-block;transform:scale(0.5);cursor:pointer;width:48px;height:48px;background-position:" +
+                            -12 * 48 +
+                            "px " +
+                            -3 * 48 +
+                            'px;"></div></div>',
+                    ),
+                );
+        } catch (error) {
+            reportRuntimeError("FCMenu", error);
+            menu.append(
+                $("<div>")
+                    .addClass("subsection")
+                    .append($("<div>").addClass("title").text("Frozen Cookies Error"))
+                    .append(
+                        $("<div>")
+                            .addClass("listing")
+                            .text("The menu failed to render. The latest error is shown below."),
+                    )
+                    .append(
+                        $("<div>")
+                            .addClass("listing")
+                            .append(buildInfoBox(getDiagnosticsReportLines().join("\n"))),
+                    )
+                    .append(
+                        $("<div>")
+                            .addClass("listing")
+                            .append(
+                                buildMenuButton("Copy Error Text", function () {
+                                    copyToClipboard(getDiagnosticsReportLines().join("\n"));
+                                }),
+                            ),
+                    ),
+            );
         }
-        if (liveWrinklers().length > 0) {
-            subsection.append(buildListing("Wrinkler Value", Beautify(wrinklerValue())));
-        }
-        subsection.append(buildListing("Game Seed", Game.seed));
-        menu.append(subsection);
-        // --- INTERNAL INFO SECTION ---
-        subsection = $("<div>").addClass("subsection");
-        subsection.append($("<div>").addClass("title").text("Internal Information"));
-        buildTable = $("<table>")
-            .prop("id", "fcEfficiencyTable")
-            .append(
-                $("<tr>").append(
-                    $("<th>").text("Building"),
-                    $("<th>").text("Eff%"),
-                    $("<th>").text("Efficiency"),
-                    $("<th>").text("Cost"),
-                    $("<th>").text("Δ CPS"),
-                ),
-            );
-        recommendationList().forEach(function (rec) {
-            var item = rec.purchase,
-                chainStr = item.unlocked === 0 ? " (C)" : "";
-            buildTable.append(
-                $("<tr>").append(
-                    $("<td>").append($("<b>").text(item.name + chainStr)),
-                    $("<td>").text((Math.floor(rec.efficiencyScore * 10000) / 100).toString() + "%"),
-                    $("<td>").text(Beautify(rec.efficiency)),
-                    $("<td>").text(Beautify(rec.cost)),
-                    $("<td>").text(Beautify(rec.delta_cps)),
-                ),
-            );
-        });
-
-        // Table Dividers
-        var dividers = [
-            $("<tr>").append($("<td>").attr("colspan", "5").html("&nbsp;")),
-            $("<tr>").css("border-top", "2px dashed #999").append($("<td>").attr("colspan", "5").html("&nbsp;")),
-        ];
-
-        var banks = [
-            {
-                name: "Lucky Bank",
-                cost: luckyBank(),
-                efficiency: cookieEfficiency(Game.cookies, luckyBank()),
-            },
-            {
-                name: "Lucky Frenzy Bank",
-                cost: luckyFrenzyBank(),
-                efficiency: cookieEfficiency(Game.cookies, luckyFrenzyBank()),
-            },
-            {
-                name: "Chain Bank",
-                cost: chainBank(),
-                efficiency: cookieEfficiency(Game.cookies, chainBank()),
-            },
-        ];
-
-        var elderWrathLevels = [
-            {
-                name: "Pledging/Appeased",
-                level: 0,
-            },
-            {
-                name: "One Mind/Awoken",
-                level: 1,
-            },
-            {
-                name: "Displeased",
-                level: 2,
-            },
-            {
-                name: "Full Wrath/Angered",
-                level: 3,
-            },
-        ];
-        buildTable.append(dividers);
-        banks.forEach(function (bank) {
-            var deltaCps = effectiveCps(bank.cost) - effectiveCps();
-            buildTable.append(
-                $("<tr>").append(
-                    $("<td>")
-                        .attr("colspan", "2")
-                        .append($("<b>").text(bank.name + (bank.deltaCps === 0 ? " (*)" : ""))),
-                    $("<td>").text(Beautify(bank.efficiency)),
-                    $("<td>").text(Beautify(Math.max(0, bank.cost - Game.cookies))),
-                    $("<td>").text(Beautify(deltaCps)),
-                ),
-            );
-        });
-
-        buildTable.append(dividers);
-        elderWrathLevels.forEach(function (wrath) {
-            buildTable.append(
-                $("<tr>").append(
-                    $("<td>")
-                        .attr("colspan", "2")
-                        .append($("<b>").text(wrath.name + (Game.elderWrath === wrath.level ? " (*)" : ""))),
-                    $("<td>")
-                        .attr("colspan", "2")
-                        .attr("title", "Ratio of Effective CPS vs Base CPS")
-                        .text(Beautify(effectiveCps(Game.cookies, wrath.level) / baseCps())),
-                    $("<td>").text(Beautify(effectiveCps(Game.cookies, wrath.level) - effectiveCps())),
-                ),
-            );
-        });
-        subsection.append($("<div>").addClass("listing").append(buildTable));
-        menu.append(subsection);
-
-        if (!Game.HasAchiev("Olden days"))
-            subsection.append(
-                $(
-                    '<div id="oldenDays" style="text-align:right;width:100%;"><div ' +
-                        Game.clickStr +
-                        "=\"Game.SparkleAt(Game.mouseX,Game.mouseY);PlaySound('snd/tick.mp3');PlaySound('snd/shimmerClick.mp3');Game.Win('Olden days');Game.UpdateMenu();\" class=\"icon\" style=\"display:inline-block;transform:scale(0.5);cursor:pointer;width:48px;height:48px;background-position:" +
-                        -12 * 48 +
-                        "px " +
-                        -3 * 48 +
-                        'px;"></div></div>',
-                ),
-            );
     };
+    Game.UpdateMenu.fcMenuHookInstalled = true;
 }
 
 // Cycle through the preference values for a given option.
@@ -828,15 +1177,48 @@ function setPreferenceDirect(preferenceName, value) {
     if (preference) {
         FrozenCookies[preferenceName] = value;
         FrozenCookies.recalculateCaches = true;
-        Game.RefreshStore();
-        Game.RebuildUpgrades();
         FCStart();
+        refreshFrozenCookiesUi();
     }
 }
 
 // Opens the built-in Cookie Clicker log/info panel.
 function openGameLogPanel() {
     Game.ShowMenu("log");
+}
+
+function openProfilerPanel() {
+    Game.Prompt(
+        '<h3>Frozen Cookies Diagnostics</h3><div class="block" style="text-align:center;">Latest in-game profiler sample. Reproduce the slowdown for at least 5 seconds, then reopen this panel.</div><div class="block"><textarea id="fcProfilerPromptText" readonly style="width:100%;min-height:220px;resize:vertical;background:#111;color:#f5f5f5;border:1px solid #444;border-radius:4px;padding:8px;font-family:monospace;font-size:12px;line-height:1.4;"></textarea></div><div class="block" style="text-align:center;"><a class="option" id="fcPromptCopyProfiler">Copy Profiler Text</a><a class="option off" id="fcPromptOpenFullMenu">Open Full Menu (Experimental)</a></div>',
+        ["Close"],
+    );
+    setTimeout(function () {
+        var profilerText = l("fcProfilerPromptText");
+        if (profilerText) {
+            profilerText.value = getDiagnosticsReportLines().join("\n");
+            profilerText.focus();
+            profilerText.select();
+        }
+        var copyButton = l("fcPromptCopyProfiler");
+        if (copyButton) {
+            copyButton.onclick = function () {
+                copyToClipboard(getDiagnosticsReportLines().join("\n"));
+            };
+        }
+        var fullMenuButton = l("fcPromptOpenFullMenu");
+        if (fullMenuButton) {
+            fullMenuButton.onclick = function () {
+                FrozenCookies.fullMenuView = 1;
+                Game.ClosePrompt();
+                Game.ShowMenu("fc_menu");
+            };
+        }
+    }, 0);
+}
+
+function toggleFullMenuView() {
+    FrozenCookies.fullMenuView = FrozenCookies.fullMenuView ? 0 : 1;
+    Game.UpdateMenu();
 }
 
 // Opens the Frozen Cookies online documentation page.
@@ -850,3 +1232,5 @@ function openDocumentationPage() {
         "noopener,noreferrer,width=800,height=600",
     );
 }
+
+FCMenu();

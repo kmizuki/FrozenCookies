@@ -11,13 +11,26 @@ if (Game.version > lastCompatibleVersion) {
 }
 
 var scriptElement =
-    document.getElementById("frozenCookieScript") !== null
-        ? document.getElementById("frozenCookieScript")
-        : document.getElementById("modscript_frozen_cookies");
-var baseUrl =
-    scriptElement !== null
-        ? scriptElement.getAttribute("src").replace(/\/frozen_cookies\.js$/, "")
-        : "https://github.erbkaiser.com/FrozenCookies/";
+    document.getElementById("frozenCookieScript") ||
+    document.getElementById("modscript_frozen_cookies") ||
+    document.currentScript;
+
+function resolveBaseUrl(element) {
+    if (!element) return "https://github.erbkaiser.com/FrozenCookies/";
+
+    var sourceUrl = element.getAttribute("src") || element.src;
+    if (!sourceUrl) return "https://github.erbkaiser.com/FrozenCookies/";
+
+    try {
+        var parsedUrl = new URL(sourceUrl, window.location.href);
+        var pathname = parsedUrl.pathname.replace(/\/frozen_cookies\.js$/, "");
+        return parsedUrl.origin + pathname;
+    } catch (error) {
+        return sourceUrl.replace(/\/frozen_cookies\.js(?:\?.*)?$/, "");
+    }
+}
+
+var baseUrl = resolveBaseUrl(scriptElement);
 var FrozenCookies = {
     baseUrl: baseUrl,
     branch: "erb-",

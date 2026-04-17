@@ -211,30 +211,20 @@ const CYCLIUS_SCHEDULES = {
 };
 
 function swapIn(godId, targetSlot) {
-    //mostly code copied from minigamePantheon.js, tweaked to avoid references to "dragging"
-    if (!T.swaps) return;
+    if (!T.swaps || !T.godsById[godId]) return;
     T.useSwap(1);
     T.lastSwapT = 0;
-    var div = l("templeGod" + godId);
-    var prev = T.slot[targetSlot]; //id of God currently in slot
-    if (prev !== -1) {
-        //when something's in there already
-        prev = T.godsById[prev]; //prev becomes god object
-        var prevDiv = l("templeGod" + prev.id);
-        if (T.godsById[godId].slot !== -1) l("templeSlot" + T.godsById[godId].slot).appendChild(prevDiv);
-        else {
-            var other = l("templeGodPlaceholder" + prev.id);
-            other.parentNode.insertBefore(prevDiv, other);
-        }
-    }
-    l("templeSlot" + targetSlot).appendChild(l("templeGod" + godId));
     T.slotGod(T.godsById[godId], targetSlot);
+    repairMinigameDisplayForBuilding("Temple");
 
     PlaySound("snd/tick.mp3");
     PlaySound("snd/spirit.mp3");
 
-    var rect = l("templeGod" + godId).getBoundingClientRect();
-    Game.SparkleAt((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2 - 24);
+    var godElement = l("templeGod" + godId);
+    if (godElement) {
+        var rect = godElement.getBoundingClientRect();
+        Game.SparkleAt((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2 - 24);
+    }
 }
 
 function canManagePantheon() {
@@ -284,6 +274,7 @@ function swapPantheonGodIfNeeded(godId, slot, label) {
 function removeCycliusIfPresent() {
     if (Game.hasGod("ages")) {
         Game.forceUnslotGod("ages");
+        repairMinigameDisplayForBuilding("Temple");
         logEvent("autoCyclius", "Removing Cyclius");
     }
 }

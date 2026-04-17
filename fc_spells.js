@@ -4,32 +4,43 @@
 // @match        http://orteil.dashnet.org/cookieclicker/
 // @source       https://www.reddit.com/r/CookieClicker/comments/6v2lz3/predict_next_hands_of_faith/
 (function () {
+    function bindGrimoireTooltip() {
+        if (!Game.ObjectsById[7].minigameLoaded) return false;
+
+        var castSpell = document.getElementById("grimoireSpell1");
+        if (!castSpell) return false;
+
+        castSpell.onmouseover = function () {
+            Game.tooltip.dynamic = 1;
+            Game.tooltip.draw(
+                this,
+                Game.ObjectsById[7].minigame.spellTooltip(1)() +
+                    '<div class="line"></div><div class="description">' +
+                    "<b>First Spell:</b> " +
+                    nextSpell(0) +
+                    "<br />" +
+                    "<b>Second Spell:</b> " +
+                    nextSpell(1) +
+                    "<br />" +
+                    "<b>Third Spell:</b> " +
+                    nextSpell(2) +
+                    "<br />" +
+                    "<b>Fourth Spell:</b> " +
+                    nextSpell(3) +
+                    "</div>",
+                "this",
+            );
+            Game.tooltip.wobble();
+        };
+
+        return true;
+    }
+
+    attachGrimoireSpellTooltip = bindGrimoireTooltip;
+
     if (Game.ObjectsById[7].minigameLoaded) {
         var lookup = setInterval(function () {
-            if (typeof Game.ready !== "undefined" && Game.ready) {
-                var CastSpell = document.getElementById("grimoireSpell1");
-                CastSpell.onmouseover = function () {
-                    Game.tooltip.dynamic = 1;
-                    Game.tooltip.draw(
-                        this,
-                        Game.ObjectsById[7].minigame.spellTooltip(1)() +
-                            '<div class="line"></div><div class="description">' +
-                            "<b>First Spell:</b> " +
-                            nextSpell(0) +
-                            "<br />" +
-                            "<b>Second Spell:</b> " +
-                            nextSpell(1) +
-                            "<br />" +
-                            "<b>Third Spell:</b> " +
-                            nextSpell(2) +
-                            "<br />" +
-                            "<b>Fourth Spell:</b> " +
-                            nextSpell(3) +
-                            "</div>",
-                        "this",
-                    );
-                    Game.tooltip.wobble();
-                };
+            if (typeof Game.ready !== "undefined" && Game.ready && bindGrimoireTooltip()) {
                 clearInterval(lookup);
             }
         }, 1000);
@@ -821,7 +832,7 @@ function autoFTHOFComboAction() {
                 autoFTHOFComboAction.autobuyyes = 0;
             }
             if (Game.buyMode === -1) Game.buyMode = 1;
-            Game.Objects["Wizard tower"].sell(autoFTHOFComboAction.count);
+            safeSell(Game.Objects["Wizard tower"], autoFTHOFComboAction.count);
             M.computeMagicM(); //Recalc max after selling
             M.castSpell(M.spellsById[1]);
             logEvent("autoFTHOFCombo", "Double cast Force the Hand of Fate");
@@ -1105,12 +1116,12 @@ function auto100ConsistencyComboAction() {
             return;
 
         case 7: // Cast FTHOF 2 then buy
-            Game.Objects["Wizard tower"].sell(auto100ConsistencyComboAction.countWizard);
+            safeSell(Game.Objects["Wizard tower"], auto100ConsistencyComboAction.countWizard);
             M.computeMagicM(); //Recalc max after selling
             if (M.magic >= 30) {
                 M.castSpell(M.spellsById[1]);
                 logEvent("auto100ConsistencyCombo", "Cast FTHOF 2");
-                Game.Objects["Wizard tower"].buy(auto100ConsistencyComboAction.countWizard);
+                safeBuy(Game.Objects["Wizard tower"], auto100ConsistencyComboAction.countWizard);
                 FrozenCookies.autobuyCount += 1;
                 auto100ConsistencyComboAction.state = 8;
             }
@@ -1134,12 +1145,12 @@ function auto100ConsistencyComboAction() {
             return;
 
         case 10: // Cast FTHOF 4 then buy
-            Game.Objects["Wizard tower"].sell(auto100ConsistencyComboAction.countWizard);
+            safeSell(Game.Objects["Wizard tower"], auto100ConsistencyComboAction.countWizard);
             M.computeMagicM(); //Recalc max after selling
             if (M.magic >= 30) {
                 M.castSpell(M.spellsById[1]);
                 logEvent("auto100ConsistencyCombo", "Cast FTHOF 4");
-                Game.Objects["Wizard tower"].buy(auto100ConsistencyComboAction.countWizard);
+                safeBuy(Game.Objects["Wizard tower"], auto100ConsistencyComboAction.countWizard);
                 FrozenCookies.autobuyCount += 1;
                 auto100ConsistencyComboAction.state = 11;
             }
@@ -1169,7 +1180,7 @@ function auto100ConsistencyComboAction() {
             Game.Objects["Mine"].sell(auto100ConsistencyComboAction.countMine);
             Game.Objects["Factory"].sell(auto100ConsistencyComboAction.countFactory);
             Game.Objects["Bank"].sell(auto100ConsistencyComboAction.countBank);
-            Game.Objects["Temple"].sell(auto100ConsistencyComboAction.countTemple);
+            safeSell(Game.Objects["Temple"], auto100ConsistencyComboAction.countTemple);
             Game.Objects["Shipment"].sell(auto100ConsistencyComboAction.countShipment);
             Game.Objects["Alchemy lab"].sell(auto100ConsistencyComboAction.countAlchemy);
             Game.Objects["Time machine"].sell(auto100ConsistencyComboAction.countTimeMach);
@@ -1216,7 +1227,7 @@ function auto100ConsistencyComboAction() {
                     Game.Objects["Mine"].sell(auto100ConsistencyComboAction.countMine);
                     Game.Objects["Factory"].sell(auto100ConsistencyComboAction.countFactory);
                     Game.Objects["Bank"].sell(auto100ConsistencyComboAction.countBank);
-                    Game.Objects["Temple"].sell(auto100ConsistencyComboAction.countTemple);
+                    safeSell(Game.Objects["Temple"], auto100ConsistencyComboAction.countTemple);
                     Game.Objects["Shipment"].sell(auto100ConsistencyComboAction.countShipment);
                     Game.Objects["Alchemy lab"].sell(auto100ConsistencyComboAction.countAlchemy);
                     Game.Objects["Time machine"].sell(auto100ConsistencyComboAction.countTimeMach);
