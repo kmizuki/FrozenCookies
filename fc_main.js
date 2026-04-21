@@ -1939,66 +1939,39 @@ function blendHexColors(startColor, endColor, ratio) {
     );
 }
 
-function recommendationColorValue(recommendation) {
-    if (!recommendation || !Number.isFinite(recommendation.efficiency) || recommendation.efficiency <= 0) {
-        return Number.POSITIVE_INFINITY;
+function recommendationColorScore(recommendation) {
+    if (!recommendation || !Number.isFinite(recommendation.efficiencyScore)) {
+        return 0;
     }
-    return Math.log(recommendation.efficiency);
+    return Math.max(0, Math.min(1, recommendation.efficiencyScore));
 }
 
-function recommendationColorStops(recommendations) {
-    var finiteRecommendations = recommendations.filter(function (recommendation) {
-        return Number.isFinite(recommendationColorValue(recommendation));
-    });
-
-    if (!finiteRecommendations.length) {
-        return [];
-    }
-
-    var stopDefinitions = [
-        { index: 0, color: "#00ffff" },
-        { index: 1, color: "#00ff00" },
-        { index: 7, color: "#ffd939" },
-        { index: 15, color: "#ff4d4d" },
-        { index: finiteRecommendations.length - 1, color: "#de4dff" },
+function recommendationColorStops() {
+    return [
+        { score: 1, color: "#00e5ff" },
+        { score: 0.78, color: "#38d27a" },
+        { score: 0.55, color: "#f4d35e" },
+        { score: 0.32, color: "#ff9f43" },
+        { score: 0.12, color: "#ff5a5f" },
+        { score: 0, color: "#c77dff" },
     ];
-    var colorStops = [];
-
-    stopDefinitions.forEach(function (stopDefinition) {
-        var recommendation = finiteRecommendations[Math.min(stopDefinition.index, finiteRecommendations.length - 1)];
-        var colorValue = recommendationColorValue(recommendation);
-        if (!recommendation || !Number.isFinite(colorValue)) {
-            return;
-        }
-        var isDuplicateValue = colorStops.some(function (colorStop) {
-            return Math.abs(colorStop.value - colorValue) < 1e-9;
-        });
-        if (!isDuplicateValue) {
-            colorStops.push({
-                value: colorValue,
-                color: stopDefinition.color,
-            });
-        }
-    });
-
-    return colorStops;
 }
 
 function colorForRecommendation(recommendation, colorStops) {
-    var colorValue = recommendationColorValue(recommendation);
-    if (!Number.isFinite(colorValue) || !colorStops.length) {
-        return "#de4dff";
+    var score = recommendationColorScore(recommendation);
+    if (!colorStops.length) {
+        return "#c77dff";
     }
-    if (colorStops.length === 1 || colorValue <= colorStops[0].value) {
+    if (colorStops.length === 1 || score >= colorStops[0].score) {
         return colorStops[0].color;
     }
 
     for (var i = 1; i < colorStops.length; i++) {
         var strongerStop = colorStops[i - 1];
         var weakerStop = colorStops[i];
-        if (colorValue <= weakerStop.value) {
-            var stopSpread = weakerStop.value - strongerStop.value;
-            var blendRatio = stopSpread > 0 ? (colorValue - strongerStop.value) / stopSpread : 0;
+        if (score >= weakerStop.score) {
+            var stopSpread = strongerStop.score - weakerStop.score;
+            var blendRatio = stopSpread > 0 ? (strongerStop.score - score) / stopSpread : 0;
             return blendHexColors(strongerStop.color, weakerStop.color, blendRatio);
         }
     }
@@ -2007,7 +1980,8 @@ function colorForRecommendation(recommendation, colorStops) {
 }
 
 function addDisplayColors(recommendations) {
-    var colorStops = recommendationColorStops(recommendations);
+    // Base the gradient on the normalized score so longer lists do not skew red too early.
+    var colorStops = recommendationColorStops();
     recommendations.forEach(function (purchaseRec, index) {
         recommendations[index].efficiencyColor = colorForRecommendation(purchaseRec, colorStops);
     });
